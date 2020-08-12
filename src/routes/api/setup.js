@@ -3,36 +3,51 @@
 const sqlInit = require('../../services/sql_init');
 const setupService = require('../../services/setup');
 const log = require('../../services/log');
+const appInfo = require('../../services/app_info');
 
-async function getStatus() {
+function getStatus() {
     return {
-        isInitialized: await sqlInit.isDbInitialized(),
-        schemaExists: await sqlInit.schemaExists()
+        isInitialized: sqlInit.isDbInitialized(),
+        schemaExists: sqlInit.schemaExists(),
+        syncVersion: appInfo.syncVersion
     };
 }
 
 async function setupNewDocument(req) {
-    const { username, password } = req.body;
+    const { username, password, theme } = req.body;
 
-    await sqlInit.createInitialDatabase(username, password);
+    await sqlInit.createInitialDatabase(username, password, theme);
 }
 
-async function setupSyncFromServer(req) {
+function setupSyncFromServer(req) {
     const { syncServerHost, syncProxy, username, password } = req.body;
 
-    return await setupService.setupSyncFromSyncServer(syncServerHost, syncProxy, username, password);
+    return setupService.setupSyncFromSyncServer(syncServerHost, syncProxy, username, password);
 }
 
-async function saveSyncSeed(req) {
-    const options = req.body.options;
+function saveSyncSeed(req) {
+    const {options, syncVersion} = req.body;
 
-    await sqlInit.createDatabaseForSync(options);
+    if (appInfo.syncVersion !== syncVersion) {
+        const message = `Could not setup sync since local sync protocol version is ${appInfo.syncVersion} while remote is ${syncVersion}. To fix this issue, use same Trilium version on all instances.`;
+
+        log.error(message);
+
+        return [400, {
+            error: message
+        }]
+    }
+
+    sqlInit.createDatabaseForSync(options);
 }
 
-async function getSyncSeed() {
+function getSyncSeed() {
     log.info("Serving sync seed.");
 
-    return await setupService.getSyncSeedOptions();
+    return {
+        options: setupService.getSyncSeedOptions(),
+        syncVersion: appInfo.syncVersion
+    };
 }
 
 module.exports = {

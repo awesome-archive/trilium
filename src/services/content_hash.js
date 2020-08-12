@@ -3,8 +3,6 @@
 const sql = require('./sql');
 const utils = require('./utils');
 const log = require('./log');
-const eventLogService = require('./event_log');
-const messagingService = require('./messaging');
 const ApiToken = require('../entities/api_token');
 const Branch = require('../entities/branch');
 const Note = require('../entities/note');
@@ -12,66 +10,74 @@ const Attribute = require('../entities/attribute');
 const NoteRevision = require('../entities/note_revision');
 const RecentNote = require('../entities/recent_note');
 const Option = require('../entities/option');
-const Link = require('../entities/link');
 
-async function getHash(entityConstructor, whereBranch) {
-    // subselect is necessary to have correct ordering in GROUP_CONCAT
-    const query = `SELECT GROUP_CONCAT(hash) FROM (SELECT hash FROM ${entityConstructor.entityName} `
-        + (whereBranch ? `WHERE ${whereBranch} ` : '') + `ORDER BY ${entityConstructor.primaryKeyName})`;
+function getSectorHashes(tableName, primaryKeyName, whereBranch) {
+    const hashes = sql.getRows(`SELECT ${primaryKeyName} AS id, hash FROM ${tableName} `
+        + (whereBranch ? `WHERE ${whereBranch} ` : '')
+        + ` ORDER BY ${primaryKeyName}`);
 
-    let contentToHash = await sql.getValue(query);
+    const map = {};
 
-    if (!contentToHash) { // might be null in case of no rows
-        contentToHash = "";
+    for (const {id, hash} of hashes) {
+        map[id[0]] = (map[id[0]] || "") + hash;
     }
 
-    return utils.hash(contentToHash);
+    for (const key in map) {
+        map[key] = utils.hash(map[key]);
+    }
+
+    return map;
 }
 
-async function getHashes() {
+function getEntityHashes() {
     const startTime = new Date();
 
     const hashes = {
-        notes: await getHash(Note),
-        branches: await getHash(Branch),
-        note_revisions: await getHash(NoteRevision),
-        recent_notes: await getHash(RecentNote),
-        options: await getHash(Option, "isSynced = 1"),
-        attributes: await getHash(Attribute),
-        api_tokens: await getHash(ApiToken),
-        links: await getHash(Link)
+        notes: getSectorHashes(Note.entityName, Note.primaryKeyName),
+        note_contents: getSectorHashes("note_contents", "noteId"),
+        branches: getSectorHashes(Branch.entityName, Branch.primaryKeyName),
+        note_revisions: getSectorHashes(NoteRevision.entityName, NoteRevision.primaryKeyName),
+        note_revision_contents: getSectorHashes("note_revision_contents", "noteRevisionId"),
+        recent_notes: getSectorHashes(RecentNote.entityName, RecentNote.primaryKeyName),
+        options: getSectorHashes(Option.entityName, Option.primaryKeyName, "isSynced = 1"),
+        attributes: getSectorHashes(Attribute.entityName, Attribute.primaryKeyName),
+        api_tokens: getSectorHashes(ApiToken.entityName, ApiToken.primaryKeyName),
     };
 
-    const elapseTimeMs = new Date().getTime() - startTime.getTime();
+    const elapsedTimeMs = Date.now() - startTime.getTime();
 
-    log.info(`Content hash computation took ${elapseTimeMs}ms`);
+    log.info(`Content hash computation took ${elapsedTimeMs}ms`);
 
     return hashes;
 }
 
-async function checkContentHashes(otherHashes) {
-    const hashes = await getHashes();
-    let allChecksPassed = true;
+function checkContentHashes(otherHashes) {
+    const entityHashes = getEntityHashes();
+    const failedChecks = [];
 
-    for (const key in hashes) {
-        if (hashes[key] !== otherHashes[key]) {
-            allChecksPassed = false;
+    for (const entityName in entityHashes) {
+        const thisSectorHashes = entityHashes[entityName];
+        const otherSectorHashes = otherHashes[entityName];
 
-            await eventLogService.addEvent(`Content hash check for ${key} FAILED. Local is ${hashes[key]}, remote is ${otherHashes[key]}`);
+        const sectors = new Set(Object.keys(thisSectorHashes).concat(Object.keys(otherSectorHashes)));
 
-            if (key !== 'recent_notes') {
-                // let's not get alarmed about recent notes which get updated often and can cause failures in race conditions
-                await messagingService.sendMessageToAllClients({type: 'sync-hash-check-failed'});
+        for (const sector of sectors) {
+            if (thisSectorHashes[sector] !== otherSectorHashes[sector]) {
+                log.info(`Content hash check for ${entityName} sector ${sector} FAILED. Local is ${thisSectorHashes[sector]}, remote is ${otherSectorHashes[sector]}`);
+
+                failedChecks.push({ entityName, sector });
             }
         }
     }
 
-    if (allChecksPassed) {
+    if (failedChecks.length === 0) {
         log.info("Content hash checks PASSED");
     }
+
+    return failedChecks;
 }
 
 module.exports = {
-    getHashes,
+    getEntityHashes,
     checkContentHashes
 };

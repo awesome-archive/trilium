@@ -3,15 +3,23 @@
 const utils = require('./utils');
 const log = require('./log');
 const url = require('url');
+const syncOptions = require('./sync_options');
 
 // this service provides abstraction over node's HTTP/HTTPS and electron net.client APIs
 // this allows to support system proxy
 
 function exec(opts) {
     const client = getClient(opts);
+
+    // hack for cases where electron.net does not work but we don't want to set proxy
+    if (opts.proxy === 'noproxy') {
+        opts.proxy = null;
+    }
+
+    const proxyAgent = getProxyAgent(opts);
     const parsedTargetUrl = url.parse(opts.url);
 
-    return new Promise(async (resolve, reject) => {
+    return new Promise((resolve, reject) => {
         try {
             const headers = {
                 Cookie: (opts.cookieJar && opts.cookieJar.header) || "",
@@ -19,26 +27,9 @@ function exec(opts) {
             };
 
             if (opts.auth) {
-                const token = new Buffer(opts.auth.user + ":" + opts.auth.pass).toString('base64');
+                const token = Buffer.from(opts.auth.user + ":" + opts.auth.pass).toString('base64');
 
                 headers['Authorization'] = `Basic ${token}`;
-            }
-
-            let host = parsedTargetUrl.hostname;
-            let protocol = parsedTargetUrl.protocol;
-            let port = parsedTargetUrl.port;
-            let path = parsedTargetUrl.path;
-
-            if (opts.proxy) {
-                // see https://stackoverflow.com/questions/3862813/how-can-i-use-an-http-proxy-with-node-js-http-client
-                const parsedProxyUrl = url.parse(opts.proxy);
-
-                protocol = parsedProxyUrl.protocol;
-                host = parsedProxyUrl.hostname;
-                port = parsedProxyUrl.port;
-                path = opts.url;
-
-                headers['Host'] = parsedTargetUrl.host; // host also includes port
             }
 
             const request = client.request({
@@ -46,12 +37,13 @@ function exec(opts) {
                 // url is used by electron net module
                 url: opts.url,
                 // 4 fields below are used by http and https node modules
-                protocol,
-                host,
-                port,
-                path,
-                timeout: opts.timeout,
-                headers
+                protocol: parsedTargetUrl.protocol,
+                host: parsedTargetUrl.hostname,
+                port: parsedTargetUrl.port,
+                path: parsedTargetUrl.path,
+                timeout: opts.timeout, // works only for node.js client
+                headers,
+                agent: proxyAgent
             });
 
             request.on('error', err => reject(generateError(opts, err)));
@@ -88,7 +80,76 @@ function exec(opts) {
         catch (e) {
             reject(generateError(opts, e.message));
         }
-    })
+    });
+}
+
+function getImage(imageUrl) {
+    const proxyConf = syncOptions.getSyncProxy();
+    const opts = {
+        method: 'GET',
+        url: imageUrl,
+        proxy: proxyConf !== "noproxy" ? proxyConf : null
+    };
+
+    const client = getClient(opts);
+    const proxyAgent = getProxyAgent(opts);
+    const parsedTargetUrl = url.parse(opts.url);
+
+    return new Promise((resolve, reject) => {
+        try {
+            const request = client.request({
+                method: opts.method,
+                // url is used by electron net module
+                url: opts.url,
+                // 4 fields below are used by http and https node modules
+                protocol: parsedTargetUrl.protocol,
+                host: parsedTargetUrl.hostname,
+                port: parsedTargetUrl.port,
+                path: parsedTargetUrl.path,
+                timeout: opts.timeout, // works only for node client
+                headers: {},
+                agent: proxyAgent
+            });
+
+            request.on('error', err => reject(generateError(opts, err)));
+
+            request.on('abort', err => reject(generateError(opts, err)));
+
+            request.on('response', response => {
+                if (![200, 201, 204].includes(response.statusCode)) {
+                    reject(generateError(opts, response.statusCode + ' ' + response.statusMessage));
+                }
+
+                const chunks = []
+
+                response.on('data', chunk => chunks.push(chunk));
+                response.on('end', () => resolve(Buffer.concat(chunks)));
+            });
+
+            request.end(undefined);
+        }
+        catch (e) {
+            reject(generateError(opts, e.message));
+        }
+    });
+}
+
+function getProxyAgent(opts) {
+    if (!opts.proxy) {
+        return null;
+    }
+
+    const {protocol} = url.parse(opts.url);
+
+    if (protocol === 'http:' || protocol === 'https:') {
+        const protoNoColon = protocol.substr(0, protocol.length - 1);
+        const AgentClass = require(protoNoColon + '-proxy-agent');
+
+        return new AgentClass(opts.proxy);
+    }
+    else {
+        return null;
+    }
 }
 
 function getClient(opts) {
@@ -98,9 +159,7 @@ function getClient(opts) {
         return require('electron').net;
     }
     else {
-        // in case there's explicit proxy then we need to use protocol of the proxy since we're actually
-        // connecting to the proxy server and not to the end-target server
-        const {protocol} = url.parse(opts.proxy || opts.url);
+        const {protocol} = url.parse(opts.url);
 
         if (protocol === 'http:' || protocol === 'https:') {
             return require(protocol.substr(0, protocol.length - 1));
@@ -116,5 +175,6 @@ function generateError(opts, message) {
 }
 
 module.exports = {
-    exec
+    exec,
+    getImage
 };

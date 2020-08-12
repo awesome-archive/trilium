@@ -1,16 +1,19 @@
 const sax = require("sax");
+const FileType = require('file-type');
 const stream = require('stream');
-const xml2js = require('xml2js');
 const log = require("../log");
 const utils = require("../utils");
+const sql = require("../sql");
 const noteService = require("../notes");
 const imageService = require("../image");
+const protectedSessionService = require('../protected_session');
+const htmlSanitizer = require("../html_sanitizer");
 
 // date format is e.g. 20181121T193703Z
 function parseDate(text) {
     // insert - and : to make it ISO format
     text = text.substr(0, 4) + "-" + text.substr(4, 2) + "-" + text.substr(6, 2)
-        + "T" + text.substr(9, 2) + ":" + text.substr(11, 2) + ":" + text.substr(13, 2) + "Z";
+        + " " + text.substr(9, 2) + ":" + text.substr(11, 2) + ":" + text.substr(13, 2) + ".000Z";
 
     return text;
 }
@@ -18,47 +21,41 @@ function parseDate(text) {
 let note = {};
 let resource;
 
-async function importEnex(file, parentNote) {
+function importEnex(taskContext, file, parentNote) {
     const saxStream = sax.createStream(true);
-    const xmlBuilder = new xml2js.Builder({ headless: true });
-    const parser = new xml2js.Parser({ explicitArray: true });
 
     const rootNoteTitle = file.originalname.toLowerCase().endsWith(".enex")
         ? file.originalname.substr(0, file.originalname.length - 5)
         : file.originalname;
 
     // root note is new note into all ENEX/notebook's notes will be imported
-    const rootNote = (await noteService.createNote(parentNote.noteId, rootNoteTitle, "", {
+    const rootNote = (noteService.createNewNote({
+        parentNoteId: parentNote.noteId,
+        title: rootNoteTitle,
+        content: "",
         type: 'text',
-        mime: 'text/html'
+        mime: 'text/html',
+        isProtected: parentNote.isProtected && protectedSessionService.isProtectedSessionAvailable(),
     })).note;
 
     // we're persisting notes as we parse the document, but these are run asynchronously and may not be finished
     // when we finish parsing. We use this to be sure that all saving has been finished before returning successfully.
     const saveNotePromises = [];
 
-    async function parseXml(text) {
-        return new Promise(function(resolve, reject)
-        {
-            parser.parseString(text, function (err, result) {
-                if (err) {
-                    reject(err);
-                }
-                else {
-                    resolve(result);
-                }
-            });
-        });
-    }
+    function extractContent(content) {
+        const openingNoteIndex = content.indexOf('<en-note>');
 
-    function extractContent(enNote) {
-        // [] thing is workaround for https://github.com/Leonidas-from-XIV/node-xml2js/issues/484
-        let content = xmlBuilder.buildObject([enNote]);
+        if (openingNoteIndex !== -1) {
+            content = content.substr(openingNoteIndex + 9);
+        }
 
-        const endOfFirstTagIndex = content.indexOf('>');
+        const closingNoteIndex = content.lastIndexOf('</en-note>');
 
-        // strip the <0> and </0> tags
-        content = content.substr(endOfFirstTagIndex + 1, content.length - endOfFirstTagIndex - 5).trim();
+        if (closingNoteIndex !== -1) {
+            content = content.substr(0, closingNoteIndex);
+        }
+
+        content = content.trim();
 
         // workaround for https://github.com/ckeditor/ckeditor5-list/issues/116
         content = content.replace(/<li>\s+<div>/g, "<li>");
@@ -74,6 +71,8 @@ async function importEnex(file, parentNote) {
         content = content.replace(/<\/li>\s+<ol>/g, "<ol>");
         content = content.replace(/<\/ol>\s+<\/ol>/g, "</ol></li></ol>");
         content = content.replace(/<\/ol>\s+<li>/g, "</ol></li><li>");
+
+        content = htmlSanitizer.sanitize(content);
 
         return content;
     }
@@ -136,15 +135,9 @@ async function importEnex(file, parentNote) {
                 text = text.replace(/\s/g, '');
 
                 resource.content = utils.fromBase64(text);
-
-                resource.attributes.push({
-                    type: 'label',
-                    name: 'fileSize',
-                    value: resource.content.length
-                });
             }
             else if (currentTag === 'mime') {
-                resource.mime = text;
+                resource.mime = text.toLowerCase();
 
                 if (text.startsWith("image/")) {
                     resource.title = "image";
@@ -162,9 +155,9 @@ async function importEnex(file, parentNote) {
             if (currentTag === 'title') {
                 note.title = text;
             } else if (currentTag === 'created') {
-                note.dateCreated = parseDate(text);
+                note.utcDateCreated = parseDate(text);
             } else if (currentTag === 'updated') {
-                // updated is currently ignored since dateModified is updated automatically with each save
+                note.utcDateModified = parseDate(text);
             } else if (currentTag === 'tag') {
                 note.attributes.push({
                     type: 'label',
@@ -201,60 +194,121 @@ async function importEnex(file, parentNote) {
         }
     });
 
-    async function saveNote() {
-        // make a copy because stream continues with the next async call and note gets overwritten
-        let {title, content, attributes, resources, dateCreated} = note;
+    function updateDates(noteId, utcDateCreated, utcDateModified) {
+        // it's difficult to force custom dateCreated and dateModified to Note entity so we do it post-creation with SQL
+        sql.execute(`
+                UPDATE notes 
+                SET dateCreated = ?, 
+                    utcDateCreated = ?,
+                    dateModified = ?,
+                    utcDateModified = ?
+                WHERE noteId = ?`,
+            [utcDateCreated, utcDateCreated, utcDateModified, utcDateModified, noteId]);
 
-        const xmlObject = await parseXml(content);
+        sql.execute(`
+                UPDATE note_contents
+                SET utcDateModified = ?
+                WHERE noteId = ?`,
+            [utcDateModified, noteId]);
+    }
 
-        // following is workaround for this issue: https://github.com/Leonidas-from-XIV/node-xml2js/issues/484
-        content = extractContent(xmlObject['en-note']);
+    function saveNote() {
+        // make a copy because stream continues with the next call and note gets overwritten
+        let {title, content, attributes, resources, utcDateCreated, utcDateModified} = note;
 
-        const noteEntity = (await noteService.createNote(rootNote.noteId, title, content, {
-            attributes,
-            dateCreated,
+        content = extractContent(content);
+
+        const noteEntity = noteService.createNewNote({
+            parentNoteId: rootNote.noteId,
+            title,
+            content,
+            utcDateCreated,
             type: 'text',
-            mime: 'text/html'
-        })).note;
+            mime: 'text/html',
+            isProtected: parentNote.isProtected && protectedSessionService.isProtectedSessionAvailable(),
+        }).note;
+
+        for (const attr of attributes) {
+            noteEntity.addAttribute(attr.type, attr.name, attr.value);
+        }
+
+        utcDateCreated = utcDateCreated || noteEntity.utcDateCreated;
+        // sometime date modified is not present in ENEX, then use date created
+        utcDateModified = utcDateModified || utcDateCreated;
+
+        taskContext.increaseProgressCount();
 
         for (const resource of resources) {
             const hash = utils.md5(resource.content);
 
             const mediaRegex = new RegExp(`<en-media hash="${hash}"[^>]*>`, 'g');
 
-            if (resource.mime.startsWith("image/")) {
-                const originalName = "image." + resource.mime.substr(6);
-
-                const { url } = await imageService.saveImage(resource.content, originalName, noteEntity.noteId);
-
-                const imageLink = `<img src="${url}">`;
-
-                noteEntity.content = noteEntity.content.replace(mediaRegex, imageLink);
-
-                if (!note.content.includes(imageLink)) {
-                    // if there wasn't any match for the reference, we'll add the image anyway
-                    // otherwise image would be removed since no note would include it
-                    note.content += imageLink;
-                }
+            const fileTypeFromBuffer = FileType.fromBuffer(resource.content);
+            if (fileTypeFromBuffer) {
+              // If fileType returns something for buffer, then set the mime given
+              resource.mime = fileTypeFromBuffer.mime;
             }
-            else {
-                const resourceNote = (await noteService.createNote(noteEntity.noteId, resource.title, resource.content, {
-                    attributes: resource.attributes,
+
+            const createFileNote = () => {
+                const resourceNote = (noteService.createNewNote({
+                    parentNoteId: noteEntity.noteId,
+                    title: resource.title,
+                    content: resource.content,
                     type: 'file',
-                    mime: resource.mime
+                    mime: resource.mime,
+                    isProtected: parentNote.isProtected && protectedSessionService.isProtectedSessionAvailable(),
                 })).note;
+
+                for (const attr of resource.attributes) {
+                    noteEntity.addAttribute(attr.type, attr.name, attr.value);
+                }
+
+                updateDates(resourceNote.noteId, utcDateCreated, utcDateModified);
+
+                taskContext.increaseProgressCount();
 
                 const resourceLink = `<a href="#root/${resourceNote.noteId}">${utils.escapeHtml(resource.title)}</a>`;
 
-                noteEntity.content = noteEntity.content.replace(mediaRegex, resourceLink);
+                content = content.replace(mediaRegex, resourceLink);
+            };
+
+            if (resource.mime && resource.mime.startsWith('image/')) {
+                try {
+                    const originalName = "image." + resource.mime.substr(6);
+
+                    const {url, note: imageNote} = imageService.saveImage(noteEntity.noteId, resource.content, originalName, taskContext.data.shrinkImages);
+
+                    updateDates(imageNote.noteId, utcDateCreated, utcDateModified);
+
+                    const imageLink = `<img src="${url}">`;
+
+                    content = content.replace(mediaRegex, imageLink);
+
+                    if (!content.includes(imageLink)) {
+                        // if there wasn't any match for the reference, we'll add the image anyway
+                        // otherwise image would be removed since no note would include it
+                        content += imageLink;
+                    }
+                } catch (e) {
+                    log.error("error when saving image from ENEX file: " + e);
+                    createFileNote();
+                }
+            } else {
+                createFileNote();
             }
         }
 
+        content = htmlSanitizer.sanitize(content);
+
         // save updated content with links to files/images
-        await noteEntity.save();
+        noteEntity.setContent(content);
+
+        noteService.scanForLinks(noteEntity);
+
+        updateDates(noteEntity.noteId, utcDateCreated, utcDateModified);
     }
 
-    saxStream.on("closetag", async tag => {
+    saxStream.on("closetag", tag => {
         path.pop();
 
         if (tag === 'note') {

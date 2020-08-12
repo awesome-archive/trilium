@@ -1,24 +1,25 @@
 "use strict";
 
-const noteCacheService = require('../../services/note_cache');
+const noteCacheService = require('../../services/note_cache/note_cache_service');
+const searchService = require('../../services/search/services/search.js');
 const repository = require('../../services/repository');
 const log = require('../../services/log');
 const utils = require('../../services/utils');
 const optionService = require('../../services/options');
 
-async function getAutocomplete(req) {
-    const query = req.query.query;
-    const currentNoteId = req.query.currentNoteId || 'none';
+function getAutocomplete(req) {
+    const query = req.query.query.trim();
+    const activeNoteId = req.query.activeNoteId || 'none';
 
     let results;
 
     const timestampStarted = Date.now();
 
-    if (query.trim().length === 0) {
-        results = await getRecentNotes(currentNoteId);
+    if (query.length === 0) {
+        results = getRecentNotes(activeNoteId);
     }
     else {
-        results = await noteCacheService.findNotes(query);
+        results = searchService.searchNotesForAutocomplete(query);
     }
 
     const msTaken = Date.now() - timestampStarted;
@@ -30,36 +31,38 @@ async function getAutocomplete(req) {
     return results;
 }
 
-async function getRecentNotes(currentNoteId) {
+function getRecentNotes(activeNoteId) {
     let extraCondition = '';
+    const params = [activeNoteId];
 
-    const hoistedNoteId = await optionService.getOption('hoistedNoteId');
+    const hoistedNoteId = optionService.getOption('hoistedNoteId');
     if (hoistedNoteId !== 'root') {
-        extraCondition = `AND recent_notes.notePath LIKE '%${utils.sanitizeSql(hoistedNoteId)}%'`;
+        extraCondition = `AND recent_notes.notePath LIKE ?`;
+        params.push(hoistedNoteId + '%');
     }
 
-    const recentNotes = await repository.getEntities(`
+    const recentNotes = repository.getEntities(`
       SELECT 
         recent_notes.* 
       FROM 
         recent_notes
-        JOIN branches USING(branchId)
+        JOIN notes USING(noteId)
       WHERE
         recent_notes.isDeleted = 0
-        AND branches.isDeleted = 0
-        AND branches.noteId != ?
+        AND notes.isDeleted = 0
+        AND notes.noteId != ?
         ${extraCondition}
       ORDER BY 
-        dateCreated DESC
-      LIMIT 200`, [currentNoteId]);
+        utcDateCreated DESC
+      LIMIT 200`, params);
 
     return recentNotes.map(rn => {
         const title = noteCacheService.getNoteTitleForPath(rn.notePath.split('/'));
 
         return {
-            path: rn.notePath,
-            title: title,
-            highlighted: title
+            notePath: rn.notePath,
+            notePathTitle: title,
+            highlightedNotePathTitle: utils.escapeHtml(title)
         };
     });
 }

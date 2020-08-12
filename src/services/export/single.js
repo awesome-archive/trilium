@@ -1,12 +1,12 @@
 "use strict";
 
-const sanitize = require("sanitize-filename");
-const TurndownService = require('turndown');
 const mimeTypes = require('mime-types');
 const html = require('html');
+const utils = require('../utils');
+const mdService = require('./md');
 
-async function exportSingleNote(branch, format, res) {
-    const note = await branch.getNote();
+function exportSingleNote(taskContext, branch, format, res) {
+    const note = branch.getNote();
 
     if (note.type === 'image' || note.type === 'file') {
         return [400, `Note type ${note.type} cannot be exported as single file.`];
@@ -18,38 +18,44 @@ async function exportSingleNote(branch, format, res) {
 
     let payload, extension, mime;
 
+    let content = note.getContent();
+
     if (note.type === 'text') {
         if (format === 'html') {
-            payload = html.prettyPrint(note.content, {indent_size: 2});
+            if (!content.toLowerCase().includes("<html")) {
+                content = '<html><head><meta charset="utf-8"></head><body>' + content + '</body></html>';
+            }
+
+            payload = html.prettyPrint(content, {indent_size: 2});
             extension = 'html';
             mime = 'text/html';
         }
         else if (format === 'markdown') {
-            const turndownService = new TurndownService();
-            payload = turndownService.turndown(note.content);
+            payload = mdService.toMarkdown(content);
             extension = 'md';
-            mime = 'text/markdown'
+            mime = 'text/x-markdown'
         }
     }
     else if (note.type === 'code') {
-        payload = note.content;
+        payload = content;
         extension = mimeTypes.extension(note.mime) || 'code';
         mime = note.mime;
     }
     else if (note.type === 'relation-map' || note.type === 'search') {
-        payload = note.content;
+        payload = content;
         extension = 'json';
         mime = 'application/json';
     }
 
-    const name = sanitize(note.title);
+    const filename = note.title + "." + extension;
 
-    console.log(name, extension, mime);
-
-    res.setHeader('Content-Disposition', `file; filename="${name}.${extension}"`);
+    res.setHeader('Content-Disposition', utils.getContentDisposition(filename));
     res.setHeader('Content-Type', mime + '; charset=UTF-8');
 
     res.send(payload);
+
+    taskContext.increaseProgressCount();
+    taskContext.taskSucceeded();
 }
 
 module.exports = {

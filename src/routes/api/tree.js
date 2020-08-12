@@ -2,60 +2,60 @@
 
 const sql = require('../../services/sql');
 const optionService = require('../../services/options');
-const protectedSessionService = require('../../services/protected_session');
+const treeService = require('../../services/tree');
 
-async function getNotes(noteIds) {
-    const notes = await sql.getManyRows(`
-      SELECT noteId, title, isProtected, type, mime
-      FROM notes WHERE isDeleted = 0 AND noteId IN (???)`, noteIds);
+function getNotesAndBranchesAndAttributes(noteIds) {
+    noteIds = Array.from(new Set(noteIds));
+    const notes = treeService.getNotes(noteIds);
 
-    const cssClassLabels = await sql.getManyRows(`
-      SELECT noteId, value FROM attributes WHERE isDeleted = 0 AND type = 'label' 
-                                             AND name = 'cssClass' AND noteId IN (???)`, noteIds);
+    noteIds = notes.map(note => note.noteId);
 
-    for (const label of cssClassLabels) {
-        // FIXME: inefficient!
-        const note = notes.find(note => note.noteId === label.noteId);
+    // joining child note to filter out not completely synchronised notes which would then cause errors later
+    // cannot do that with parent because of root note's 'none' parent
+    const branches = sql.getManyRows(` 
+        SELECT 
+            branches.branchId,
+            branches.noteId,
+            branches.parentNoteId,
+            branches.notePosition,
+            branches.prefix,
+            branches.isExpanded
+        FROM branches
+        JOIN notes AS child ON child.noteId = branches.noteId
+        WHERE branches.isDeleted = 0
+          AND (branches.noteId IN (???) OR parentNoteId IN (???))`, noteIds);
 
-        if (!note) {
-            continue;
-        }
+    // sorting in memory is faster
+    branches.sort((a, b) => a.notePosition - b.notePosition < 0 ? -1 : 1);
 
-        if (note.cssClass) {
-            note.cssClass += " " + label.value;
-        }
-        else {
-            note.cssClass = label.value;
-        }
-    }
+    const attributes = sql.getManyRows(`
+        SELECT
+            attributeId,
+            noteId,
+            type,
+            name,
+            value,
+            position,
+            isInheritable
+        FROM attributes
+        WHERE isDeleted = 0 AND noteId IN (???)`, noteIds);
 
-    protectedSessionService.decryptNotes(notes);
+    // sorting in memory is faster
+    attributes.sort((a, b) => a.position - b.position < 0 ? -1 : 1);
 
-    notes.forEach(note => note.isProtected = !!note.isProtected);
-    return notes;
+    return {
+        branches,
+        notes,
+        attributes
+    };
 }
 
-async function getRelations(noteIds) {
-    // we need to fetch both parentNoteId and noteId matches because we can have loaded child
-    // of which only some of the parents has been loaded.
-    // also now with note hoisting, it is possible to have the note displayed without its parent chain being loaded
-
-    const relations = await sql.getManyRows(`SELECT branchId, noteId AS 'childNoteId', parentNoteId, notePosition FROM branches WHERE isDeleted = 0 
-         AND (parentNoteId IN (???) OR noteId IN (???))`, noteIds);
-
-    // although we're fetching relations for multiple notes, ordering will stay correct for single note as well - relations are being added into tree cache in the order they were returned
-    // cannot use ORDER BY because of usage of getManyRows which is not a single SQL query
-    relations.sort((a, b) => a.notePosition > b.notePosition ? 1 : -1);
-
-    return relations;
-}
-
-async function getTree() {
-    const hoistedNoteId = await optionService.getOption('hoistedNoteId');
+function getTree() {
+    const hoistedNoteId = optionService.getOption('hoistedNoteId');
 
     // we fetch all branches of notes, even if that particular branch isn't visible
     // this allows us to e.g. detect and properly display clones
-    const branches = await sql.getRows(`
+    const noteIds = sql.getColumn(`
         WITH RECURSIVE
             tree(branchId, noteId, isExpanded) AS (
             SELECT branchId, noteId, isExpanded FROM branches WHERE noteId = ? 
@@ -64,45 +64,15 @@ async function getTree() {
               JOIN tree ON branches.parentNoteId = tree.noteId
               WHERE tree.isExpanded = 1 AND branches.isDeleted = 0
           )
-        SELECT branches.* FROM tree JOIN branches USING(noteId) WHERE branches.isDeleted = 0 ORDER BY branches.notePosition`, [hoistedNoteId]);
+        SELECT noteId FROM tree`, [hoistedNoteId]);
 
-    // we also want root branch in there because all the paths start with root
-    branches.push(await sql.getRow(`SELECT * FROM branches WHERE branchId = 'root'`));
+    noteIds.push('root');
 
-    const noteIds = Array.from(new Set(branches.map(b => b.noteId)));
-
-    const notes = await getNotes(noteIds);
-
-    const relations = await getRelations(noteIds);
-
-    return {
-        startNotePath: (await optionService.getOption('startNotePath')) || 'root',
-        branches,
-        notes,
-        relations
-    };
+    return getNotesAndBranchesAndAttributes(noteIds);
 }
 
-async function load(req) {
-    let noteIds = req.body.noteIds;
-    const branchIds = req.body.branchIds;
-
-    if (branchIds && branchIds.length > 0) {
-        noteIds = (await sql.getManyRows(`SELECT noteId FROM branches WHERE isDeleted = 0 AND branchId IN(???)`, branchIds))
-            .map(note => note.noteId);
-    }
-
-    const branches = await sql.getManyRows(`SELECT * FROM branches WHERE isDeleted = 0 AND noteId IN (???)`, noteIds);
-
-    const notes = await getNotes(noteIds);
-
-    const relations = await getRelations(noteIds);
-
-    return {
-        branches,
-        notes,
-        relations
-    };
+function load(req) {
+    return getNotesAndBranchesAndAttributes(req.body.noteIds);
 }
 
 module.exports = {

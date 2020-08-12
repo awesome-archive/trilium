@@ -6,11 +6,11 @@ const dateUtils = require('../services/date_utils');
 /**
  * Option represents name-value pair, either directly configurable by the user or some system property.
  *
- * @param {string} name
- * @param {string} value
- * @param {boolean} isSynced
- * @param {string} dateModified
- * @param {string} dateCreated
+ * @property {string} name
+ * @property {string} value
+ * @property {boolean} isSynced
+ * @property {string} utcDateModified
+ * @property {string} utcDateCreated
  *
  * @extends Entity
  */
@@ -26,10 +26,14 @@ class Option extends Entity {
     }
 
     beforeSaving() {
+        if (!this.utcDateCreated) {
+            this.utcDateCreated = dateUtils.utcNowDateTime();
+        }
+
         super.beforeSaving();
 
         if (this.isChanged) {
-            this.dateModified = dateUtils.nowDate();
+            this.utcDateModified = dateUtils.utcNowDateTime();
         }
     }
 }

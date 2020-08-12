@@ -1,6 +1,7 @@
 "use strict";
 
 const utils = require('../services/utils');
+let repo = null;
 
 class Entity {
     /**
@@ -8,7 +9,10 @@ class Entity {
      */
     constructor(row = {}) {
         for (const key in row) {
-            this[key] = row[key];
+            // ! is used when joint-fetching notes and note_contents objects for performance
+            if (!key.startsWith('!')) {
+                this[key] = row[key];
+            }
         }
 
         if ('isDeleted' in this) {
@@ -23,7 +27,13 @@ class Entity {
 
         this.hash = this.generateHash();
 
-        this.isChanged = origHash !== this.hash;
+        if (this.forcedChange) {
+            this.isChanged = true;
+            delete this.forcedChange;
+        }
+        else {
+            this.isChanged = origHash !== this.hash;
+        }
     }
 
     generateIdIfNecessary() {
@@ -42,8 +52,16 @@ class Entity {
         return utils.hash(contentToHash).substr(0, 10);
     }
 
-    async save() {
-        await require('../services/repository').updateEntity(this);
+    get repository() {
+        if (!repo) {
+            repo = require('../services/repository');
+        }
+
+        return repo;
+    }
+
+    save() {
+        this.repository.updateEntity(this);
 
         return this;
     }

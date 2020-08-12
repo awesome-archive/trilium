@@ -4,6 +4,9 @@ const crypto = require('crypto');
 const randtoken = require('rand-token').generator({source: 'crypto'});
 const unescape = require('unescape');
 const escape = require('escape-html');
+const sanitize = require("sanitize-filename");
+const mimeTypes = require('mime-types');
+const path = require('path');
 
 function newEntityId() {
     return randomString(12);
@@ -47,17 +50,26 @@ function isEmptyOrWhitespace(str) {
     return str === null || str.match(/^ *$/) !== null;
 }
 
-function sanitizeSql(str) {
-    // should be improved or usage eliminated
-    return str.replace(/'/g, "\\'");
+function sanitizeSqlIdentifier(str) {
+    return str.replace(/[^A-Za-z0-9_]/g, "");
 }
 
-async function stopWatch(what, func) {
+function prepareSqlForLike(prefix, str, suffix) {
+    const value = str
+        .replace(/\\/g, "\\\\")
+        .replace(/'/g, "''")
+        .replace(/_/g, "\\_")
+        .replace(/%/g, "\\%");
+
+    return `'${prefix}${value}${suffix}' ESCAPE '\\'`;
+}
+
+function stopWatch(what, func) {
     const start = new Date();
 
-    const ret = await func();
+    const ret = func();
 
-    const tookMs = new Date().getTime() - start.getTime();
+    const tookMs = Date.now() - start.getTime();
 
     console.log(`${what} took ${tookMs}ms`);
 
@@ -127,6 +139,146 @@ function crash() {
     }
 }
 
+function sanitizeFilenameForHeader(filename) {
+    let sanitizedFilename = sanitize(filename);
+
+    if (sanitizedFilename.trim().length === 0) {
+        sanitizedFilename = "file";
+    }
+
+    return encodeURIComponent(sanitizedFilename)
+}
+
+function getContentDisposition(filename) {
+    const sanitizedFilename = sanitizeFilenameForHeader(filename);
+
+    return `file; filename="${sanitizedFilename}"; filename*=UTF-8''${sanitizedFilename}`;
+}
+
+const STRING_MIME_TYPES = [
+    "application/javascript",
+    "application/x-javascript",
+    "image/svg+xml"
+];
+
+function isStringNote(type, mime) {
+    // render and book are string note in the sense that they are expected to contain empty string
+    return ["text", "code", "relation-map", "search", "render", "book"].includes(type)
+        || mime.startsWith('text/')
+        || STRING_MIME_TYPES.includes(mime);
+}
+
+function quoteRegex(url) {
+    return url.replace(/[.*+\-?^${}()|[\]\\]/g, '\\$&');
+}
+
+function replaceAll(string, replaceWhat, replaceWith) {
+    const quotedReplaceWhat = quoteRegex(replaceWhat);
+
+    return string.replace(new RegExp(quotedReplaceWhat, "g"), replaceWith);
+}
+
+function formatDownloadTitle(filename, type, mime) {
+    if (!filename) {
+        filename = "untitled";
+    }
+
+    if (type === 'text') {
+        return filename + '.html';
+    } else if (['relation-map', 'search'].includes(type)) {
+        return filename + '.json';
+    } else {
+        if (!mime) {
+            return filename;
+        }
+
+        mime = mime.toLowerCase();
+        const filenameLc = filename.toLowerCase();
+        const extensions = mimeTypes.extensions[mime];
+
+        if (!extensions || extensions.length === 0) {
+            return filename;
+        }
+
+        for (const ext of extensions) {
+            if (filenameLc.endsWith('.' + ext)) {
+                return filename;
+            }
+        }
+
+        if (mime === 'application/octet-stream') {
+            // we didn't find any good guess for this one, it will be better to just return
+            // the current name without fake extension. It's possible that the title still preserves to correct
+            // extension too
+
+            return filename;
+        }
+
+        return filename + '.' + extensions[0];
+    }
+}
+
+function removeTextFileExtension(filePath) {
+    const extension = path.extname(filePath).toLowerCase();
+
+    if (extension === '.md' || extension === '.markdown' || extension === '.html') {
+        return filePath.substr(0, filePath.length - extension.length);
+    }
+    else {
+        return filePath;
+    }
+}
+
+function getNoteTitle(filePath, replaceUnderscoresWithSpaces, noteMeta) {
+    if (noteMeta) {
+        return noteMeta.title;
+    } else {
+        const basename = path.basename(removeTextFileExtension(filePath));
+        if(replaceUnderscoresWithSpaces) {
+            return basename.replace(/_/g, ' ').trim();
+        }
+        return basename;
+    }
+}
+
+function timeLimit(promise, limitMs) {
+    // better stack trace if created outside of promise
+    const error = new Error('Process exceeded time limit ' + limitMs);
+
+    return new Promise((res, rej) => {
+        let resolved = false;
+
+        promise.then(result => {
+            resolved = true;
+
+            res(result);
+        })
+        .catch(error => rej(error));
+
+        setTimeout(() => {
+            if (!resolved) {
+                rej(error);
+            }
+        }, limitMs);
+    });
+}
+
+function deferred() {
+    return (() => {
+        let resolve, reject;
+
+        let promise = new Promise((res, rej) => {
+            resolve = res;
+            reject = rej;
+        });
+
+        promise.resolve = resolve;
+        promise.reject = reject;
+
+        return promise;
+    })();
+}
+
 module.exports = {
     randomSecureToken,
     randomString,
@@ -138,7 +290,8 @@ module.exports = {
     isElectron,
     hash,
     isEmptyOrWhitespace,
-    sanitizeSql,
+    sanitizeSqlIdentifier,
+    prepareSqlForLike,
     stopWatch,
     escapeHtml,
     unescapeHtml,
@@ -147,5 +300,15 @@ module.exports = {
     intersection,
     union,
     escapeRegExp,
-    crash
+    crash,
+    sanitizeFilenameForHeader,
+    getContentDisposition,
+    isStringNote,
+    quoteRegex,
+    replaceAll,
+    getNoteTitle,
+    removeTextFileExtension,
+    formatDownloadTitle,
+    timeLimit,
+    deferred
 };

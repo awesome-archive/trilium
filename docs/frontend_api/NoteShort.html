@@ -28,10 +28,9 @@
 
 <header>
     
-        <h2><span class="attribs"><span class="type-signature"></span></span>NoteShort<span class="signature">()</span><span class="type-signature"></span></h2>
+        <h2><span class="attribs"><span class="type-signature"></span></span>NoteShort<span class="signature">(treeCache, row)</span><span class="type-signature"></span></h2>
         
-            <div class="class-description">This note's representation is used in note tree and is kept in TreeCache.
-Its notable omission is the note content.</div>
+            <div class="class-description">This note's representation is used in note tree and is kept in TreeCache.</div>
         
     
 </header>
@@ -46,7 +45,7 @@ Its notable omission is the note content.</div>
     
 
     
-    <h4 class="name" id="NoteShort"><span class="type-signature"></span>new NoteShort<span class="signature">()</span><span class="type-signature"></span></h4>
+    <h4 class="name" id="NoteShort"><span class="type-signature"></span>new NoteShort<span class="signature">(treeCache, row)</span><span class="type-signature"></span></h4>
     
 
     
@@ -59,6 +58,78 @@ Its notable omission is the note content.</div>
 
 
 
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>treeCache</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">TreeCache</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>row</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">Object.&lt;string, Object></span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"></td>
+        </tr>
+
+    
+    </tbody>
+</table>
 
 
 
@@ -94,7 +165,7 @@ Its notable omission is the note content.</div>
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="entities_note_short.js.html">entities/note_short.js</a>, <a href="entities_note_short.js.html#line12">line 12</a>
+        <a href="entities_note_short.js.html">entities/note_short.js</a>, <a href="entities_note_short.js.html#line17">line 17</a>
     </li></ul></dd>
     
 
@@ -104,6 +175,8 @@ Its notable omission is the note content.</div>
 
     
 </dl>
+
+
 
 
 
@@ -142,7 +215,211 @@ Its notable omission is the note content.</div>
 
         
             
-<h4 class="name" id="archived"><span class="type-signature"></span>archived<span class="type-signature"></span></h4>
+<h4 class="name" id="attributes"><span class="type-signature"></span>attributes<span class="type-signature"> :Array.&lt;string></span></h4>
+
+
+
+
+
+
+    <h5>Type:</h5>
+    <ul>
+        <li>
+            
+<span class="param-type">Array.&lt;string></span>
+
+
+        </li>
+    </ul>
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="entities_note_short.js.html">entities/note_short.js</a>, <a href="entities_note_short.js.html#line21">line 21</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+        
+            
+<h4 class="name" id="children"><span class="type-signature"></span>children<span class="type-signature"> :Array.&lt;string></span></h4>
+
+
+
+
+
+
+    <h5>Type:</h5>
+    <ul>
+        <li>
+            
+<span class="param-type">Array.&lt;string></span>
+
+
+        </li>
+    </ul>
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="entities_note_short.js.html">entities/note_short.js</a>, <a href="entities_note_short.js.html#line29">line 29</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+        
+            
+<h4 class="name" id="childToBranch"><span class="type-signature"></span>childToBranch<span class="type-signature"> :Object.&lt;string, string></span></h4>
+
+
+
+
+
+
+    <h5>Type:</h5>
+    <ul>
+        <li>
+            
+<span class="param-type">Object.&lt;string, string></span>
+
+
+        </li>
+    </ul>
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="entities_note_short.js.html">entities/note_short.js</a>, <a href="entities_note_short.js.html#line35">line 35</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+        
+            
+<h4 class="name" id="contentLength"><span class="type-signature"></span>contentLength<span class="type-signature"></span></h4>
 
 
 
@@ -182,7 +459,65 @@ Its notable omission is the note content.</div>
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="entities_note_short.js.html">entities/note_short.js</a>, <a href="entities_note_short.js.html#line26">line 26</a>
+        <a href="entities_note_short.js.html">entities/note_short.js</a>, <a href="entities_note_short.js.html#line46">line 46</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+        
+            
+<h4 class="name" id="isDeleted"><span class="type-signature"></span>isDeleted<span class="type-signature"></span></h4>
+
+
+
+
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="entities_note_short.js.html">entities/note_short.js</a>, <a href="entities_note_short.js.html#line54">line 54</a>
     </li></ul></dd>
     
 
@@ -240,7 +575,7 @@ Its notable omission is the note content.</div>
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="entities_note_short.js.html">entities/note_short.js</a>, <a href="entities_note_short.js.html#line20">line 20</a>
+        <a href="entities_note_short.js.html">entities/note_short.js</a>, <a href="entities_note_short.js.html#line48">line 48</a>
     </li></ul></dd>
     
 
@@ -298,7 +633,7 @@ Its notable omission is the note content.</div>
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="entities_note_short.js.html">entities/note_short.js</a>, <a href="entities_note_short.js.html#line24">line 24</a>
+        <a href="entities_note_short.js.html">entities/note_short.js</a>, <a href="entities_note_short.js.html#line52">line 52</a>
     </li></ul></dd>
     
 
@@ -356,7 +691,211 @@ Its notable omission is the note content.</div>
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="entities_note_short.js.html">entities/note_short.js</a>, <a href="entities_note_short.js.html#line16">line 16</a>
+        <a href="entities_note_short.js.html">entities/note_short.js</a>, <a href="entities_note_short.js.html#line42">line 42</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+        
+            
+<h4 class="name" id="parents"><span class="type-signature"></span>parents<span class="type-signature"> :Array.&lt;string></span></h4>
+
+
+
+
+
+
+    <h5>Type:</h5>
+    <ul>
+        <li>
+            
+<span class="param-type">Array.&lt;string></span>
+
+
+        </li>
+    </ul>
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="entities_note_short.js.html">entities/note_short.js</a>, <a href="entities_note_short.js.html#line27">line 27</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+        
+            
+<h4 class="name" id="parentToBranch"><span class="type-signature"></span>parentToBranch<span class="type-signature"> :Object.&lt;string, string></span></h4>
+
+
+
+
+
+
+    <h5>Type:</h5>
+    <ul>
+        <li>
+            
+<span class="param-type">Object.&lt;string, string></span>
+
+
+        </li>
+    </ul>
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="entities_note_short.js.html">entities/note_short.js</a>, <a href="entities_note_short.js.html#line32">line 32</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+        
+            
+<h4 class="name" id="targetRelations"><span class="type-signature"></span>targetRelations<span class="type-signature"> :Array.&lt;string></span></h4>
+
+
+
+
+
+
+    <h5>Type:</h5>
+    <ul>
+        <li>
+            
+<span class="param-type">Array.&lt;string></span>
+
+
+        </li>
+    </ul>
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="entities_note_short.js.html">entities/note_short.js</a>, <a href="entities_note_short.js.html#line24">line 24</a>
     </li></ul></dd>
     
 
@@ -414,7 +953,7 @@ Its notable omission is the note content.</div>
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="entities_note_short.js.html">entities/note_short.js</a>, <a href="entities_note_short.js.html#line18">line 18</a>
+        <a href="entities_note_short.js.html">entities/note_short.js</a>, <a href="entities_note_short.js.html#line44">line 44</a>
     </li></ul></dd>
     
 
@@ -472,7 +1011,7 @@ Its notable omission is the note content.</div>
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="entities_note_short.js.html">entities/note_short.js</a>, <a href="entities_note_short.js.html#line22">line 22</a>
+        <a href="entities_note_short.js.html">entities/note_short.js</a>, <a href="entities_note_short.js.html#line50">line 50</a>
     </li></ul></dd>
     
 
@@ -500,7 +1039,7 @@ Its notable omission is the note content.</div>
     
 
     
-    <h4 class="name" id="getAttribute"><span class="type-signature">(async) </span>getAttribute<span class="signature">(type, name)</span><span class="type-signature"> &rarr; {Promise.&lt;<a href="Attribute.html">Attribute</a>>}</span></h4>
+    <h4 class="name" id="getAttribute"><span class="type-signature"></span>getAttribute<span class="signature">(type, name)</span><span class="type-signature"> &rarr; {<a href="Attribute.html">Attribute</a>}</span></h4>
     
 
     
@@ -620,7 +1159,7 @@ Its notable omission is the note content.</div>
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="entities_note_short.js.html">entities/note_short.js</a>, <a href="entities_note_short.js.html#line144">line 144</a>
+        <a href="entities_note_short.js.html">entities/note_short.js</a>, <a href="entities_note_short.js.html#line298">line 298</a>
     </li></ul></dd>
     
 
@@ -630,6 +1169,8 @@ Its notable omission is the note content.</div>
 
     
 </dl>
+
+
 
 
 
@@ -658,7 +1199,7 @@ Its notable omission is the note content.</div>
     </dt>
     <dd>
         
-<span class="param-type">Promise.&lt;<a href="Attribute.html">Attribute</a>></span>
+<span class="param-type"><a href="Attribute.html">Attribute</a></span>
 
 
     </dd>
@@ -676,7 +1217,7 @@ Its notable omission is the note content.</div>
     
 
     
-    <h4 class="name" id="getAttributes"><span class="type-signature">(async) </span>getAttributes<span class="signature">(name<span class="signature-attributes">opt</span>)</span><span class="type-signature"> &rarr; {Promise.&lt;Array.&lt;<a href="Attribute.html">Attribute</a>>>}</span></h4>
+    <h4 class="name" id="getAttributes"><span class="type-signature"></span>getAttributes<span class="signature">(type<span class="signature-attributes">opt</span>, name<span class="signature-attributes">opt</span>)</span><span class="type-signature"> &rarr; {Array.&lt;<a href="Attribute.html">Attribute</a>>}</span></h4>
     
 
     
@@ -718,6 +1259,39 @@ Its notable omission is the note content.</div>
 
         <tr>
             
+                <td class="name"><code>type</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+
+                
+                </td>
+            
+
+            
+
+            <td class="description last">(optional) attribute type to filter</td>
+        </tr>
+
+    
+
+        <tr>
+            
                 <td class="name"><code>name</code></td>
             
 
@@ -744,7 +1318,7 @@ Its notable omission is the note content.</div>
 
             
 
-            <td class="description last">attribute name to filter</td>
+            <td class="description last">(optional) attribute name to filter</td>
         </tr>
 
     
@@ -785,7 +1359,7 @@ Its notable omission is the note content.</div>
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="entities_note_short.js.html">entities/note_short.js</a>, <a href="entities_note_short.js.html#line85">line 85</a>
+        <a href="entities_note_short.js.html">entities/note_short.js</a>, <a href="entities_note_short.js.html#line169">line 169</a>
     </li></ul></dd>
     
 
@@ -808,9 +1382,15 @@ Its notable omission is the note content.</div>
 
 
 
+
+
 <h5>Returns:</h5>
 
         
+<div class="param-desc">
+    all note's attributes, including inherited ones
+</div>
+
 
 
 <dl>
@@ -819,7 +1399,7 @@ Its notable omission is the note content.</div>
     </dt>
     <dd>
         
-<span class="param-type">Promise.&lt;Array.&lt;<a href="Attribute.html">Attribute</a>>></span>
+<span class="param-type">Array.&lt;<a href="Attribute.html">Attribute</a>></span>
 
 
     </dd>
@@ -837,7 +1417,7 @@ Its notable omission is the note content.</div>
     
 
     
-    <h4 class="name" id="getAttributeValue"><span class="type-signature">(async) </span>getAttributeValue<span class="signature">(type, name)</span><span class="type-signature"> &rarr; {Promise.&lt;string>}</span></h4>
+    <h4 class="name" id="getAttributeValue"><span class="type-signature"></span>getAttributeValue<span class="signature">(type, name)</span><span class="type-signature"> &rarr; {string}</span></h4>
     
 
     
@@ -957,7 +1537,7 @@ Its notable omission is the note content.</div>
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="entities_note_short.js.html">entities/note_short.js</a>, <a href="entities_note_short.js.html#line155">line 155</a>
+        <a href="entities_note_short.js.html">entities/note_short.js</a>, <a href="entities_note_short.js.html#line320">line 320</a>
     </li></ul></dd>
     
 
@@ -967,6 +1547,8 @@ Its notable omission is the note content.</div>
 
     
 </dl>
+
+
 
 
 
@@ -995,7 +1577,7 @@ Its notable omission is the note content.</div>
     </dt>
     <dd>
         
-<span class="param-type">Promise.&lt;string></span>
+<span class="param-type">string</span>
 
 
     </dd>
@@ -1013,7 +1595,7 @@ Its notable omission is the note content.</div>
     
 
     
-    <h4 class="name" id="getBranches"><span class="type-signature">(async) </span>getBranches<span class="signature">()</span><span class="type-signature"> &rarr; {Promise.&lt;Array.&lt;<a href="Branch.html">Branch</a>>>}</span></h4>
+    <h4 class="name" id="getBranches"><span class="type-signature"></span>getBranches<span class="signature">()</span><span class="type-signature"> &rarr; {Array.&lt;<a href="Branch.html">Branch</a>>}</span></h4>
     
 
     
@@ -1061,7 +1643,7 @@ Its notable omission is the note content.</div>
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="entities_note_short.js.html">entities/note_short.js</a>, <a href="entities_note_short.js.html#line36">line 36</a>
+        <a href="entities_note_short.js.html">entities/note_short.js</a>, <a href="entities_note_short.js.html#line112">line 112</a>
     </li></ul></dd>
     
 
@@ -1071,6 +1653,8 @@ Its notable omission is the note content.</div>
 
     
 </dl>
+
+
 
 
 
@@ -1095,7 +1679,7 @@ Its notable omission is the note content.</div>
     </dt>
     <dd>
         
-<span class="param-type">Promise.&lt;Array.&lt;<a href="Branch.html">Branch</a>>></span>
+<span class="param-type">Array.&lt;<a href="Branch.html">Branch</a>></span>
 
 
     </dd>
@@ -1113,7 +1697,7 @@ Its notable omission is the note content.</div>
     
 
     
-    <h4 class="name" id="getChildBranches"><span class="type-signature">(async) </span>getChildBranches<span class="signature">()</span><span class="type-signature"> &rarr; {Promise.&lt;Array.&lt;<a href="Branch.html">Branch</a>>>}</span></h4>
+    <h4 class="name" id="getBranchIds"><span class="type-signature"></span>getBranchIds<span class="signature">()</span><span class="type-signature"> &rarr; {Array.&lt;string>}</span></h4>
     
 
     
@@ -1161,7 +1745,7 @@ Its notable omission is the note content.</div>
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="entities_note_short.js.html">entities/note_short.js</a>, <a href="entities_note_short.js.html#line50">line 50</a>
+        <a href="entities_note_short.js.html">entities/note_short.js</a>, <a href="entities_note_short.js.html#line107">line 107</a>
     </li></ul></dd>
     
 
@@ -1171,6 +1755,8 @@ Its notable omission is the note content.</div>
 
     
 </dl>
+
+
 
 
 
@@ -1195,7 +1781,109 @@ Its notable omission is the note content.</div>
     </dt>
     <dd>
         
-<span class="param-type">Promise.&lt;Array.&lt;<a href="Branch.html">Branch</a>>></span>
+<span class="param-type">Array.&lt;string></span>
+
+
+    </dd>
+</dl>
+
+    
+
+
+
+
+
+        
+            
+
+    
+
+    
+    <h4 class="name" id="getChildBranches"><span class="type-signature"></span>getChildBranches<span class="signature">()</span><span class="type-signature"> &rarr; {Array.&lt;<a href="Branch.html">Branch</a>>}</span></h4>
+    
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="entities_note_short.js.html">entities/note_short.js</a>, <a href="entities_note_short.js.html#line124">line 124</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<h5>Returns:</h5>
+
+        
+
+
+<dl>
+    <dt>
+        Type
+    </dt>
+    <dd>
+        
+<span class="param-type">Array.&lt;<a href="Branch.html">Branch</a>></span>
 
 
     </dd>
@@ -1261,7 +1949,7 @@ Its notable omission is the note content.</div>
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="entities_note_short.js.html">entities/note_short.js</a>, <a href="entities_note_short.js.html#line72">line 72</a>
+        <a href="entities_note_short.js.html">entities/note_short.js</a>, <a href="entities_note_short.js.html#line142">line 142</a>
     </li></ul></dd>
     
 
@@ -1271,6 +1959,8 @@ Its notable omission is the note content.</div>
 
     
 </dl>
+
+
 
 
 
@@ -1361,7 +2051,7 @@ Its notable omission is the note content.</div>
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="entities_note_short.js.html">entities/note_short.js</a>, <a href="entities_note_short.js.html#line77">line 77</a>
+        <a href="entities_note_short.js.html">entities/note_short.js</a>, <a href="entities_note_short.js.html#line147">line 147</a>
     </li></ul></dd>
     
 
@@ -1371,6 +2061,8 @@ Its notable omission is the note content.</div>
 
     
 </dl>
+
+
 
 
 
@@ -1413,7 +2105,7 @@ Its notable omission is the note content.</div>
     
 
     
-    <h4 class="name" id="getLabel"><span class="type-signature">(async) </span>getLabel<span class="signature">(name)</span><span class="type-signature"> &rarr; {Promise.&lt;<a href="Attribute.html">Attribute</a>>}</span></h4>
+    <h4 class="name" id="getLabel"><span class="type-signature"></span>getLabel<span class="signature">(name)</span><span class="type-signature"> &rarr; {<a href="Attribute.html">Attribute</a>}</span></h4>
     
 
     
@@ -1510,7 +2202,7 @@ Its notable omission is the note content.</div>
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="entities_note_short.js.html">entities/note_short.js</a>, <a href="entities_note_short.js.html#line177">line 177</a>
+        <a href="entities_note_short.js.html">entities/note_short.js</a>, <a href="entities_note_short.js.html#line360">line 360</a>
     </li></ul></dd>
     
 
@@ -1520,6 +2212,8 @@ Its notable omission is the note content.</div>
 
     
 </dl>
+
+
 
 
 
@@ -1548,7 +2242,7 @@ Its notable omission is the note content.</div>
     </dt>
     <dd>
         
-<span class="param-type">Promise.&lt;<a href="Attribute.html">Attribute</a>></span>
+<span class="param-type"><a href="Attribute.html">Attribute</a></span>
 
 
     </dd>
@@ -1566,7 +2260,7 @@ Its notable omission is the note content.</div>
     
 
     
-    <h4 class="name" id="getLabelDefinitions"><span class="type-signature">(async) </span>getLabelDefinitions<span class="signature">(name<span class="signature-attributes">opt</span>)</span><span class="type-signature"> &rarr; {Promise.&lt;Array.&lt;<a href="Attribute.html">Attribute</a>>>}</span></h4>
+    <h4 class="name" id="getLabelDefinitions"><span class="type-signature"></span>getLabelDefinitions<span class="signature">(name<span class="signature-attributes">opt</span>)</span><span class="type-signature"> &rarr; {Array.&lt;<a href="Attribute.html">Attribute</a>>}</span></h4>
     
 
     
@@ -1675,7 +2369,7 @@ Its notable omission is the note content.</div>
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="entities_note_short.js.html">entities/note_short.js</a>, <a href="entities_note_short.js.html#line110">line 110</a>
+        <a href="entities_note_short.js.html">entities/note_short.js</a>, <a href="entities_note_short.js.html#line236">line 236</a>
     </li></ul></dd>
     
 
@@ -1685,6 +2379,8 @@ Its notable omission is the note content.</div>
 
     
 </dl>
+
+
 
 
 
@@ -1713,7 +2409,7 @@ Its notable omission is the note content.</div>
     </dt>
     <dd>
         
-<span class="param-type">Promise.&lt;Array.&lt;<a href="Attribute.html">Attribute</a>>></span>
+<span class="param-type">Array.&lt;<a href="Attribute.html">Attribute</a>></span>
 
 
     </dd>
@@ -1731,7 +2427,7 @@ Its notable omission is the note content.</div>
     
 
     
-    <h4 class="name" id="getLabels"><span class="type-signature">(async) </span>getLabels<span class="signature">(name<span class="signature-attributes">opt</span>)</span><span class="type-signature"> &rarr; {Promise.&lt;Array.&lt;<a href="Attribute.html">Attribute</a>>>}</span></h4>
+    <h4 class="name" id="getLabels"><span class="type-signature"></span>getLabels<span class="signature">(name<span class="signature-attributes">opt</span>)</span><span class="type-signature"> &rarr; {Array.&lt;<a href="Attribute.html">Attribute</a>>}</span></h4>
     
 
     
@@ -1840,7 +2536,7 @@ Its notable omission is the note content.</div>
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="entities_note_short.js.html">entities/note_short.js</a>, <a href="entities_note_short.js.html#line102">line 102</a>
+        <a href="entities_note_short.js.html">entities/note_short.js</a>, <a href="entities_note_short.js.html#line228">line 228</a>
     </li></ul></dd>
     
 
@@ -1850,6 +2546,8 @@ Its notable omission is the note content.</div>
 
     
 </dl>
+
+
 
 
 
@@ -1878,7 +2576,7 @@ Its notable omission is the note content.</div>
     </dt>
     <dd>
         
-<span class="param-type">Promise.&lt;Array.&lt;<a href="Attribute.html">Attribute</a>>></span>
+<span class="param-type">Array.&lt;<a href="Attribute.html">Attribute</a>></span>
 
 
     </dd>
@@ -1896,7 +2594,7 @@ Its notable omission is the note content.</div>
     
 
     
-    <h4 class="name" id="getLabelValue"><span class="type-signature">(async) </span>getLabelValue<span class="signature">(name)</span><span class="type-signature"> &rarr; {Promise.&lt;string>}</span></h4>
+    <h4 class="name" id="getLabelValue"><span class="type-signature"></span>getLabelValue<span class="signature">(name)</span><span class="type-signature"> &rarr; {string}</span></h4>
     
 
     
@@ -1993,7 +2691,7 @@ Its notable omission is the note content.</div>
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="entities_note_short.js.html">entities/note_short.js</a>, <a href="entities_note_short.js.html#line189">line 189</a>
+        <a href="entities_note_short.js.html">entities/note_short.js</a>, <a href="entities_note_short.js.html#line384">line 384</a>
     </li></ul></dd>
     
 
@@ -2003,6 +2701,8 @@ Its notable omission is the note content.</div>
 
     
 </dl>
+
+
 
 
 
@@ -2031,7 +2731,7 @@ Its notable omission is the note content.</div>
     </dt>
     <dd>
         
-<span class="param-type">Promise.&lt;string></span>
+<span class="param-type">string</span>
 
 
     </dd>
@@ -2049,7 +2749,7 @@ Its notable omission is the note content.</div>
     
 
     
-    <h4 class="name" id="getParentNoteIds"><span class="type-signature"></span>getParentNoteIds<span class="signature">()</span><span class="type-signature"> &rarr; {Array.&lt;string>}</span></h4>
+    <h4 class="name" id="getOwnedAttribute"><span class="type-signature"></span>getOwnedAttribute<span class="signature">(type, name)</span><span class="type-signature"> &rarr; {<a href="Attribute.html">Attribute</a>}</span></h4>
     
 
     
@@ -2062,6 +2762,78 @@ Its notable omission is the note content.</div>
 
 
 
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>type</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last">attribute type (label, relation, etc.)</td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>name</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last">attribute name</td>
+        </tr>
+
+    
+    </tbody>
+</table>
 
 
 
@@ -2097,7 +2869,7 @@ Its notable omission is the note content.</div>
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="entities_note_short.js.html">entities/note_short.js</a>, <a href="entities_note_short.js.html#line62">line 62</a>
+        <a href="entities_note_short.js.html">entities/note_short.js</a>, <a href="entities_note_short.js.html#line287">line 287</a>
     </li></ul></dd>
     
 
@@ -2120,9 +2892,15 @@ Its notable omission is the note content.</div>
 
 
 
+
+
 <h5>Returns:</h5>
 
         
+<div class="param-desc">
+    attribute of given type and name. If there's more such attributes, first is  returned. Returns null if there's no such attribute belonging to this note.
+</div>
+
 
 
 <dl>
@@ -2131,7 +2909,7 @@ Its notable omission is the note content.</div>
     </dt>
     <dd>
         
-<span class="param-type">Array.&lt;string></span>
+<span class="param-type"><a href="Attribute.html">Attribute</a></span>
 
 
     </dd>
@@ -2149,7 +2927,7 @@ Its notable omission is the note content.</div>
     
 
     
-    <h4 class="name" id="getParentNotes"><span class="type-signature">(async) </span>getParentNotes<span class="signature">()</span><span class="type-signature"> &rarr; {Promise.&lt;Array.&lt;<a href="NoteShort.html">NoteShort</a>>>}</span></h4>
+    <h4 class="name" id="getOwnedAttributes"><span class="type-signature"></span>getOwnedAttributes<span class="signature">(type<span class="signature-attributes">opt</span>, name<span class="signature-attributes">opt</span>)</span><span class="type-signature"> &rarr; {Array.&lt;<a href="Attribute.html">Attribute</a>>}</span></h4>
     
 
     
@@ -2162,6 +2940,100 @@ Its notable omission is the note content.</div>
 
 
 
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+        <th>Attributes</th>
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>type</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+
+                
+                </td>
+            
+
+            
+
+            <td class="description last">(optional) attribute type to filter</td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>name</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+
+                
+                </td>
+            
+
+            
+
+            <td class="description last">(optional) attribute name to filter</td>
+        </tr>
+
+    
+    </tbody>
+</table>
 
 
 
@@ -2197,7 +3069,7 @@ Its notable omission is the note content.</div>
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="entities_note_short.js.html">entities/note_short.js</a>, <a href="entities_note_short.js.html#line67">line 67</a>
+        <a href="entities_note_short.js.html">entities/note_short.js</a>, <a href="entities_note_short.js.html#line156">line 156</a>
     </li></ul></dd>
     
 
@@ -2220,9 +3092,15 @@ Its notable omission is the note content.</div>
 
 
 
+
+
 <h5>Returns:</h5>
 
         
+<div class="param-desc">
+    all note's attributes, including inherited ones
+</div>
+
 
 
 <dl>
@@ -2231,7 +3109,7 @@ Its notable omission is the note content.</div>
     </dt>
     <dd>
         
-<span class="param-type">Promise.&lt;Array.&lt;<a href="NoteShort.html">NoteShort</a>>></span>
+<span class="param-type">Array.&lt;<a href="Attribute.html">Attribute</a>></span>
 
 
     </dd>
@@ -2249,7 +3127,662 @@ Its notable omission is the note content.</div>
     
 
     
-    <h4 class="name" id="getRelation"><span class="type-signature">(async) </span>getRelation<span class="signature">(name)</span><span class="type-signature"> &rarr; {Promise.&lt;<a href="Attribute.html">Attribute</a>>}</span></h4>
+    <h4 class="name" id="getOwnedAttributeValue"><span class="type-signature"></span>getOwnedAttributeValue<span class="signature">(type, name)</span><span class="type-signature"> &rarr; {string}</span></h4>
+    
+
+    
+
+
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>type</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last">attribute type (label, relation, etc.)</td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>name</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last">attribute name</td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="entities_note_short.js.html">entities/note_short.js</a>, <a href="entities_note_short.js.html#line309">line 309</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<h5>Returns:</h5>
+
+        
+<div class="param-desc">
+    attribute value of given type and name or null if no such attribute exists.
+</div>
+
+
+
+<dl>
+    <dt>
+        Type
+    </dt>
+    <dd>
+        
+<span class="param-type">string</span>
+
+
+    </dd>
+</dl>
+
+    
+
+
+
+
+
+        
+            
+
+    
+
+    
+    <h4 class="name" id="getOwnedLabel"><span class="type-signature"></span>getOwnedLabel<span class="signature">(name)</span><span class="type-signature"> &rarr; {<a href="Attribute.html">Attribute</a>}</span></h4>
+    
+
+    
+
+
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>name</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last">label name</td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="entities_note_short.js.html">entities/note_short.js</a>, <a href="entities_note_short.js.html#line354">line 354</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<h5>Returns:</h5>
+
+        
+<div class="param-desc">
+    label if it exists, null otherwise
+</div>
+
+
+
+<dl>
+    <dt>
+        Type
+    </dt>
+    <dd>
+        
+<span class="param-type"><a href="Attribute.html">Attribute</a></span>
+
+
+    </dd>
+</dl>
+
+    
+
+
+
+
+
+        
+            
+
+    
+
+    
+    <h4 class="name" id="getOwnedLabels"><span class="type-signature"></span>getOwnedLabels<span class="signature">(name<span class="signature-attributes">opt</span>)</span><span class="type-signature"> &rarr; {Array.&lt;<a href="Attribute.html">Attribute</a>>}</span></h4>
+    
+
+    
+
+
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+        <th>Attributes</th>
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>name</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+
+                
+                </td>
+            
+
+            
+
+            <td class="description last">label name to filter</td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="entities_note_short.js.html">entities/note_short.js</a>, <a href="entities_note_short.js.html#line220">line 220</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<h5>Returns:</h5>
+
+        
+<div class="param-desc">
+    all note's labels (attributes with type label), including inherited ones
+</div>
+
+
+
+<dl>
+    <dt>
+        Type
+    </dt>
+    <dd>
+        
+<span class="param-type">Array.&lt;<a href="Attribute.html">Attribute</a>></span>
+
+
+    </dd>
+</dl>
+
+    
+
+
+
+
+
+        
+            
+
+    
+
+    
+    <h4 class="name" id="getOwnedLabelValue"><span class="type-signature"></span>getOwnedLabelValue<span class="signature">(name)</span><span class="type-signature"> &rarr; {string}</span></h4>
+    
+
+    
+
+
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>name</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last">label name</td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="entities_note_short.js.html">entities/note_short.js</a>, <a href="entities_note_short.js.html#line378">line 378</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<h5>Returns:</h5>
+
+        
+<div class="param-desc">
+    label value if label exists, null otherwise
+</div>
+
+
+
+<dl>
+    <dt>
+        Type
+    </dt>
+    <dd>
+        
+<span class="param-type">string</span>
+
+
+    </dd>
+</dl>
+
+    
+
+
+
+
+
+        
+            
+
+    
+
+    
+    <h4 class="name" id="getOwnedRelation"><span class="type-signature"></span>getOwnedRelation<span class="signature">(name)</span><span class="type-signature"> &rarr; {<a href="Attribute.html">Attribute</a>}</span></h4>
     
 
     
@@ -2346,7 +3879,7 @@ Its notable omission is the note content.</div>
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="entities_note_short.js.html">entities/note_short.js</a>, <a href="entities_note_short.js.html#line183">line 183</a>
+        <a href="entities_note_short.js.html">entities/note_short.js</a>, <a href="entities_note_short.js.html#line366">line 366</a>
     </li></ul></dd>
     
 
@@ -2356,6 +3889,8 @@ Its notable omission is the note content.</div>
 
     
 </dl>
+
+
 
 
 
@@ -2384,7 +3919,7 @@ Its notable omission is the note content.</div>
     </dt>
     <dd>
         
-<span class="param-type">Promise.&lt;<a href="Attribute.html">Attribute</a>></span>
+<span class="param-type"><a href="Attribute.html">Attribute</a></span>
 
 
     </dd>
@@ -2402,7 +3937,7 @@ Its notable omission is the note content.</div>
     
 
     
-    <h4 class="name" id="getRelationDefinitions"><span class="type-signature">(async) </span>getRelationDefinitions<span class="signature">(name<span class="signature-attributes">opt</span>)</span><span class="type-signature"> &rarr; {Promise.&lt;Array.&lt;<a href="Attribute.html">Attribute</a>>>}</span></h4>
+    <h4 class="name" id="getOwnedRelations"><span class="type-signature"></span>getOwnedRelations<span class="signature">(name<span class="signature-attributes">opt</span>)</span><span class="type-signature"> &rarr; {Array.&lt;<a href="Attribute.html">Attribute</a>>}</span></h4>
     
 
     
@@ -2511,7 +4046,7 @@ Its notable omission is the note content.</div>
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="entities_note_short.js.html">entities/note_short.js</a>, <a href="entities_note_short.js.html#line126">line 126</a>
+        <a href="entities_note_short.js.html">entities/note_short.js</a>, <a href="entities_note_short.js.html#line244">line 244</a>
     </li></ul></dd>
     
 
@@ -2523,169 +4058,6 @@ Its notable omission is the note content.</div>
 </dl>
 
 
-
-
-
-
-
-
-
-
-
-
-
-<h5>Returns:</h5>
-
-        
-<div class="param-desc">
-    all note's relation definitions including inherited ones
-</div>
-
-
-
-<dl>
-    <dt>
-        Type
-    </dt>
-    <dd>
-        
-<span class="param-type">Promise.&lt;Array.&lt;<a href="Attribute.html">Attribute</a>>></span>
-
-
-    </dd>
-</dl>
-
-    
-
-
-
-
-
-        
-            
-
-    
-
-    
-    <h4 class="name" id="getRelations"><span class="type-signature">(async) </span>getRelations<span class="signature">(name<span class="signature-attributes">opt</span>)</span><span class="type-signature"> &rarr; {Promise.&lt;Array.&lt;<a href="Attribute.html">Attribute</a>>>}</span></h4>
-    
-
-    
-
-
-
-
-
-
-
-
-
-
-
-    <h5>Parameters:</h5>
-    
-
-<table class="params">
-    <thead>
-    <tr>
-        
-        <th>Name</th>
-        
-
-        <th>Type</th>
-
-        
-        <th>Attributes</th>
-        
-
-        
-
-        <th class="last">Description</th>
-    </tr>
-    </thead>
-
-    <tbody>
-    
-
-        <tr>
-            
-                <td class="name"><code>name</code></td>
-            
-
-            <td class="type">
-            
-                
-<span class="param-type">string</span>
-
-
-            
-            </td>
-
-            
-                <td class="attributes">
-                
-                    &lt;optional><br>
-                
-
-                
-
-                
-                </td>
-            
-
-            
-
-            <td class="description last">relation name to filter</td>
-        </tr>
-
-    
-    </tbody>
-</table>
-
-
-
-
-
-
-<dl class="details">
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-    <dt class="tag-source">Source:</dt>
-    <dd class="tag-source"><ul class="dummy"><li>
-        <a href="entities_note_short.js.html">entities/note_short.js</a>, <a href="entities_note_short.js.html#line118">line 118</a>
-    </li></ul></dd>
-    
-
-    
-
-    
-
-    
-</dl>
 
 
 
@@ -2714,7 +4086,7 @@ Its notable omission is the note content.</div>
     </dt>
     <dd>
         
-<span class="param-type">Promise.&lt;Array.&lt;<a href="Attribute.html">Attribute</a>>></span>
+<span class="param-type">Array.&lt;<a href="Attribute.html">Attribute</a>></span>
 
 
     </dd>
@@ -2732,7 +4104,855 @@ Its notable omission is the note content.</div>
     
 
     
-    <h4 class="name" id="getRelationTarget"><span class="type-signature">(async) </span>getRelationTarget<span class="signature">(name)</span><span class="type-signature"> &rarr; {Promise.&lt;Note>|null}</span></h4>
+    <h4 class="name" id="getOwnedRelationValue"><span class="type-signature"></span>getOwnedRelationValue<span class="signature">(name)</span><span class="type-signature"> &rarr; {string}</span></h4>
+    
+
+    
+
+
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>name</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last">relation name</td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="entities_note_short.js.html">entities/note_short.js</a>, <a href="entities_note_short.js.html#line390">line 390</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<h5>Returns:</h5>
+
+        
+<div class="param-desc">
+    relation value if relation exists, null otherwise
+</div>
+
+
+
+<dl>
+    <dt>
+        Type
+    </dt>
+    <dd>
+        
+<span class="param-type">string</span>
+
+
+    </dd>
+</dl>
+
+    
+
+
+
+
+
+        
+            
+
+    
+
+    
+    <h4 class="name" id="getParentNoteIds"><span class="type-signature"></span>getParentNoteIds<span class="signature">()</span><span class="type-signature"> &rarr; {Array.&lt;string>}</span></h4>
+    
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="entities_note_short.js.html">entities/note_short.js</a>, <a href="entities_note_short.js.html#line132">line 132</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<h5>Returns:</h5>
+
+        
+
+
+<dl>
+    <dt>
+        Type
+    </dt>
+    <dd>
+        
+<span class="param-type">Array.&lt;string></span>
+
+
+    </dd>
+</dl>
+
+    
+
+
+
+
+
+        
+            
+
+    
+
+    
+    <h4 class="name" id="getParentNotes"><span class="type-signature"></span>getParentNotes<span class="signature">()</span><span class="type-signature"> &rarr; {Array.&lt;<a href="NoteShort.html">NoteShort</a>>}</span></h4>
+    
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="entities_note_short.js.html">entities/note_short.js</a>, <a href="entities_note_short.js.html#line137">line 137</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<h5>Returns:</h5>
+
+        
+
+
+<dl>
+    <dt>
+        Type
+    </dt>
+    <dd>
+        
+<span class="param-type">Array.&lt;<a href="NoteShort.html">NoteShort</a>></span>
+
+
+    </dd>
+</dl>
+
+    
+
+
+
+
+
+        
+            
+
+    
+
+    
+    <h4 class="name" id="getRelation"><span class="type-signature"></span>getRelation<span class="signature">(name)</span><span class="type-signature"> &rarr; {<a href="Attribute.html">Attribute</a>}</span></h4>
+    
+
+    
+
+
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>name</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last">relation name</td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="entities_note_short.js.html">entities/note_short.js</a>, <a href="entities_note_short.js.html#line372">line 372</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<h5>Returns:</h5>
+
+        
+<div class="param-desc">
+    relation if it exists, null otherwise
+</div>
+
+
+
+<dl>
+    <dt>
+        Type
+    </dt>
+    <dd>
+        
+<span class="param-type"><a href="Attribute.html">Attribute</a></span>
+
+
+    </dd>
+</dl>
+
+    
+
+
+
+
+
+        
+            
+
+    
+
+    
+    <h4 class="name" id="getRelationDefinitions"><span class="type-signature"></span>getRelationDefinitions<span class="signature">(name<span class="signature-attributes">opt</span>)</span><span class="type-signature"> &rarr; {Array.&lt;<a href="Attribute.html">Attribute</a>>}</span></h4>
+    
+
+    
+
+
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+        <th>Attributes</th>
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>name</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+
+                
+                </td>
+            
+
+            
+
+            <td class="description last">relation name to filter</td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="entities_note_short.js.html">entities/note_short.js</a>, <a href="entities_note_short.js.html#line260">line 260</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<h5>Returns:</h5>
+
+        
+<div class="param-desc">
+    all note's relation definitions including inherited ones
+</div>
+
+
+
+<dl>
+    <dt>
+        Type
+    </dt>
+    <dd>
+        
+<span class="param-type">Array.&lt;<a href="Attribute.html">Attribute</a>></span>
+
+
+    </dd>
+</dl>
+
+    
+
+
+
+
+
+        
+            
+
+    
+
+    
+    <h4 class="name" id="getRelations"><span class="type-signature"></span>getRelations<span class="signature">(name<span class="signature-attributes">opt</span>)</span><span class="type-signature"> &rarr; {Array.&lt;<a href="Attribute.html">Attribute</a>>}</span></h4>
+    
+
+    
+
+
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+        <th>Attributes</th>
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>name</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+
+                
+                </td>
+            
+
+            
+
+            <td class="description last">relation name to filter</td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="entities_note_short.js.html">entities/note_short.js</a>, <a href="entities_note_short.js.html#line252">line 252</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<h5>Returns:</h5>
+
+        
+<div class="param-desc">
+    all note's relations (attributes with type relation), including inherited ones
+</div>
+
+
+
+<dl>
+    <dt>
+        Type
+    </dt>
+    <dd>
+        
+<span class="param-type">Array.&lt;<a href="Attribute.html">Attribute</a>></span>
+
+
+    </dd>
+</dl>
+
+    
+
+
+
+
+
+        
+            
+
+    
+
+    
+    <h4 class="name" id="getRelationTarget"><span class="type-signature">(async) </span>getRelationTarget<span class="signature">(name)</span><span class="type-signature"> &rarr; {Promise.&lt;<a href="NoteShort.html">NoteShort</a>>|null}</span></h4>
     
 
     
@@ -2829,7 +5049,7 @@ Its notable omission is the note content.</div>
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="entities_note_short.js.html">entities/note_short.js</a>, <a href="entities_note_short.js.html#line201">line 201</a>
+        <a href="entities_note_short.js.html">entities/note_short.js</a>, <a href="entities_note_short.js.html#line402">line 402</a>
     </li></ul></dd>
     
 
@@ -2839,6 +5059,8 @@ Its notable omission is the note content.</div>
 
     
 </dl>
+
+
 
 
 
@@ -2867,7 +5089,7 @@ Its notable omission is the note content.</div>
     </dt>
     <dd>
         
-<span class="param-type">Promise.&lt;Note></span>
+<span class="param-type">Promise.&lt;<a href="NoteShort.html">NoteShort</a>></span>
 |
 
 <span class="param-type">null</span>
@@ -2888,7 +5110,170 @@ Its notable omission is the note content.</div>
     
 
     
-    <h4 class="name" id="getRelationValue"><span class="type-signature">(async) </span>getRelationValue<span class="signature">(name)</span><span class="type-signature"> &rarr; {Promise.&lt;string>}</span></h4>
+    <h4 class="name" id="getRelationTargets"><span class="type-signature">(async) </span>getRelationTargets<span class="signature">(name<span class="signature-attributes">opt</span>)</span><span class="type-signature"> &rarr; {Promise.&lt;Array.&lt;<a href="NoteShort.html">NoteShort</a>>>}</span></h4>
+    
+
+    
+
+
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+        <th>Attributes</th>
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>name</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+
+                
+                </td>
+            
+
+            
+
+            <td class="description last">relation name to filter</td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="entities_note_short.js.html">entities/note_short.js</a>, <a href="entities_note_short.js.html#line412">line 412</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<h5>Returns:</h5>
+
+        
+
+
+<dl>
+    <dt>
+        Type
+    </dt>
+    <dd>
+        
+<span class="param-type">Promise.&lt;Array.&lt;<a href="NoteShort.html">NoteShort</a>>></span>
+
+
+    </dd>
+</dl>
+
+    
+
+
+
+
+
+        
+            
+
+    
+
+    
+    <h4 class="name" id="getRelationValue"><span class="type-signature"></span>getRelationValue<span class="signature">(name)</span><span class="type-signature"> &rarr; {string}</span></h4>
     
 
     
@@ -2985,7 +5370,7 @@ Its notable omission is the note content.</div>
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="entities_note_short.js.html">entities/note_short.js</a>, <a href="entities_note_short.js.html#line195">line 195</a>
+        <a href="entities_note_short.js.html">entities/note_short.js</a>, <a href="entities_note_short.js.html#line396">line 396</a>
     </li></ul></dd>
     
 
@@ -2995,6 +5380,8 @@ Its notable omission is the note content.</div>
 
     
 </dl>
+
+
 
 
 
@@ -3023,7 +5410,7 @@ Its notable omission is the note content.</div>
     </dt>
     <dd>
         
-<span class="param-type">Promise.&lt;string></span>
+<span class="param-type">string</span>
 
 
     </dd>
@@ -3041,7 +5428,113 @@ Its notable omission is the note content.</div>
     
 
     
-    <h4 class="name" id="hasAttribute"><span class="type-signature">(async) </span>hasAttribute<span class="signature">(type, name)</span><span class="type-signature"> &rarr; {Promise.&lt;boolean>}</span></h4>
+    <h4 class="name" id="getTargetRelations"><span class="type-signature"></span>getTargetRelations<span class="signature">()</span><span class="type-signature"> &rarr; {Array.&lt;<a href="Attribute.html">Attribute</a>>}</span></h4>
+    
+
+    
+
+
+
+<div class="description">
+    Get relations which target this note
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="entities_note_short.js.html">entities/note_short.js</a>, <a href="entities_note_short.js.html#line436">line 436</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<h5>Returns:</h5>
+
+        
+
+
+<dl>
+    <dt>
+        Type
+    </dt>
+    <dd>
+        
+<span class="param-type">Array.&lt;<a href="Attribute.html">Attribute</a>></span>
+
+
+    </dd>
+</dl>
+
+    
+
+
+
+
+
+        
+            
+
+    
+
+    
+    <h4 class="name" id="hasAttribute"><span class="type-signature"></span>hasAttribute<span class="signature">(type, name)</span><span class="type-signature"> &rarr; {boolean}</span></h4>
     
 
     
@@ -3161,7 +5654,7 @@ Its notable omission is the note content.</div>
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="entities_note_short.js.html">entities/note_short.js</a>, <a href="entities_note_short.js.html#line135">line 135</a>
+        <a href="entities_note_short.js.html">entities/note_short.js</a>, <a href="entities_note_short.js.html#line269">line 269</a>
     </li></ul></dd>
     
 
@@ -3171,6 +5664,8 @@ Its notable omission is the note content.</div>
 
     
 </dl>
+
+
 
 
 
@@ -3199,7 +5694,7 @@ Its notable omission is the note content.</div>
     </dt>
     <dd>
         
-<span class="param-type">Promise.&lt;boolean></span>
+<span class="param-type">boolean</span>
 
 
     </dd>
@@ -3265,7 +5760,7 @@ Its notable omission is the note content.</div>
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="entities_note_short.js.html">entities/note_short.js</a>, <a href="entities_note_short.js.html#line44">line 44</a>
+        <a href="entities_note_short.js.html">entities/note_short.js</a>, <a href="entities_note_short.js.html#line119">line 119</a>
     </li></ul></dd>
     
 
@@ -3275,6 +5770,8 @@ Its notable omission is the note content.</div>
 
     
 </dl>
+
+
 
 
 
@@ -3317,7 +5814,7 @@ Its notable omission is the note content.</div>
     
 
     
-    <h4 class="name" id="hasLabel"><span class="type-signature">(async) </span>hasLabel<span class="signature">(name)</span><span class="type-signature"> &rarr; {Promise.&lt;boolean>}</span></h4>
+    <h4 class="name" id="hasLabel"><span class="type-signature"></span>hasLabel<span class="signature">(name)</span><span class="type-signature"> &rarr; {boolean}</span></h4>
     
 
     
@@ -3414,7 +5911,7 @@ Its notable omission is the note content.</div>
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="entities_note_short.js.html">entities/note_short.js</a>, <a href="entities_note_short.js.html#line165">line 165</a>
+        <a href="entities_note_short.js.html">entities/note_short.js</a>, <a href="entities_note_short.js.html#line336">line 336</a>
     </li></ul></dd>
     
 
@@ -3424,6 +5921,8 @@ Its notable omission is the note content.</div>
 
     
 </dl>
+
+
 
 
 
@@ -3452,7 +5951,7 @@ Its notable omission is the note content.</div>
     </dt>
     <dd>
         
-<span class="param-type">Promise.&lt;boolean></span>
+<span class="param-type">boolean</span>
 
 
     </dd>
@@ -3470,7 +5969,340 @@ Its notable omission is the note content.</div>
     
 
     
-    <h4 class="name" id="hasRelation"><span class="type-signature">(async) </span>hasRelation<span class="signature">(name)</span><span class="type-signature"> &rarr; {Promise.&lt;boolean>}</span></h4>
+    <h4 class="name" id="hasOwnedAttribute"><span class="type-signature"></span>hasOwnedAttribute<span class="signature">(type, name)</span><span class="type-signature"> &rarr; {boolean}</span></h4>
+    
+
+    
+
+
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>type</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last">attribute type (label, relation, etc.)</td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>name</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last">attribute name</td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="entities_note_short.js.html">entities/note_short.js</a>, <a href="entities_note_short.js.html#line278">line 278</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<h5>Returns:</h5>
+
+        
+<div class="param-desc">
+    true if note has an attribute with given type and name (including inherited)
+</div>
+
+
+
+<dl>
+    <dt>
+        Type
+    </dt>
+    <dd>
+        
+<span class="param-type">boolean</span>
+
+
+    </dd>
+</dl>
+
+    
+
+
+
+
+
+        
+            
+
+    
+
+    
+    <h4 class="name" id="hasOwnedLabel"><span class="type-signature"></span>hasOwnedLabel<span class="signature">(name)</span><span class="type-signature"> &rarr; {boolean}</span></h4>
+    
+
+    
+
+
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>name</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last">label name</td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="entities_note_short.js.html">entities/note_short.js</a>, <a href="entities_note_short.js.html#line330">line 330</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<h5>Returns:</h5>
+
+        
+<div class="param-desc">
+    true if label exists (excluding inherited)
+</div>
+
+
+
+<dl>
+    <dt>
+        Type
+    </dt>
+    <dd>
+        
+<span class="param-type">boolean</span>
+
+
+    </dd>
+</dl>
+
+    
+
+
+
+
+
+        
+            
+
+    
+
+    
+    <h4 class="name" id="hasOwnedRelation"><span class="type-signature"></span>hasOwnedRelation<span class="signature">(name)</span><span class="type-signature"> &rarr; {boolean}</span></h4>
     
 
     
@@ -3567,7 +6399,7 @@ Its notable omission is the note content.</div>
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="entities_note_short.js.html">entities/note_short.js</a>, <a href="entities_note_short.js.html#line171">line 171</a>
+        <a href="entities_note_short.js.html">entities/note_short.js</a>, <a href="entities_note_short.js.html#line342">line 342</a>
     </li></ul></dd>
     
 
@@ -3577,6 +6409,163 @@ Its notable omission is the note content.</div>
 
     
 </dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<h5>Returns:</h5>
+
+        
+<div class="param-desc">
+    true if relation exists (excluding inherited)
+</div>
+
+
+
+<dl>
+    <dt>
+        Type
+    </dt>
+    <dd>
+        
+<span class="param-type">boolean</span>
+
+
+    </dd>
+</dl>
+
+    
+
+
+
+
+
+        
+            
+
+    
+
+    
+    <h4 class="name" id="hasRelation"><span class="type-signature"></span>hasRelation<span class="signature">(name)</span><span class="type-signature"> &rarr; {boolean}</span></h4>
+    
+
+    
+
+
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>name</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last">relation name</td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="entities_note_short.js.html">entities/note_short.js</a>, <a href="entities_note_short.js.html#line348">line 348</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
 
 
 
@@ -3605,7 +6594,7 @@ Its notable omission is the note content.</div>
     </dt>
     <dd>
         
-<span class="param-type">Promise.&lt;boolean></span>
+<span class="param-type">boolean</span>
 
 
     </dd>
@@ -3676,7 +6665,7 @@ Cache is note instance scoped.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="entities_note_short.js.html">entities/note_short.js</a>, <a href="entities_note_short.js.html#line211">line 211</a>
+        <a href="entities_note_short.js.html">entities/note_short.js</a>, <a href="entities_note_short.js.html#line427">line 427</a>
     </li></ul></dd>
     
 
@@ -3686,6 +6675,8 @@ Cache is note instance scoped.
 
     
 </dl>
+
+
 
 
 
@@ -3758,7 +6749,7 @@ Cache is note instance scoped.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="entities_note_short.js.html">entities/note_short.js</a>, <a href="entities_note_short.js.html#line31">line 31</a>
+        <a href="entities_note_short.js.html">entities/note_short.js</a>, <a href="entities_note_short.js.html#line82">line 82</a>
     </li></ul></dd>
     
 
@@ -3768,6 +6759,8 @@ Cache is note instance scoped.
 
     
 </dl>
+
+
 
 
 
@@ -3820,13 +6813,13 @@ Cache is note instance scoped.
 </div>
 
 <nav>
-    <h2><a href="index.html">Home</a></h2><h3>Classes</h3><ul><li><a href="Branch.html">Branch</a></li><li><a href="FrontendScriptApi.html">FrontendScriptApi</a></li><li><a href="NoteFull.html">NoteFull</a></li><li><a href="NoteShort.html">NoteShort</a></li></ul><h3><a href="global.html">Global</a></h3>
+    <h2><a href="index.html">Home</a></h2><h3>Classes</h3><ul><li><a href="Branch.html">Branch</a></li><li><a href="FrontendScriptApi.html">FrontendScriptApi</a></li><li><a href="NoteComplement.html">NoteComplement</a></li><li><a href="NoteShort.html">NoteShort</a></li></ul><h3>Global</h3><ul><li><a href="global.html#decorateWidget">decorateWidget</a></li><li><a href="global.html#doRenderBody">doRenderBody</a></li><li><a href="global.html#widgetCollapsedStateChangedEvent">widgetCollapsedStateChangedEvent</a></li></ul>
 </nav>
 
 <br class="clear">
 
 <footer>
-    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.5.5</a>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 3.6.4</a>
 </footer>
 
 <script> prettyPrint(); </script>

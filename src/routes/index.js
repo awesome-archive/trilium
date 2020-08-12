@@ -5,36 +5,35 @@ const sql = require('../services/sql');
 const attributeService = require('../services/attributes');
 const config = require('../services/config');
 const optionService = require('../services/options');
+const log = require('../services/log');
+const env = require('../services/env');
 
-async function index(req, res) {
-    const options = await optionService.getOptionsMap();
+function index(req, res) {
+    const options = optionService.getOptionsMap();
 
-    const view = req.cookies['trilium-device'] === 'mobile' ? 'mobile' : 'desktop';
+    let view = req.cookies['trilium-device'] === 'mobile' ? 'mobile' : 'desktop';
+
+    const csrfToken = req.csrfToken();
+    log.info(`Generated CSRF token ${csrfToken} with secret ${res.getHeader('set-cookie')}`);
 
     res.render(view, {
+        csrfToken: csrfToken,
         theme: options.theme,
-        leftPaneMinWidth: parseInt(options.leftPaneMinWidth),
-        leftPaneWidthPercent: parseInt(options.leftPaneWidthPercent),
-        rightPaneWidthPercent: 100 - parseInt(options.leftPaneWidthPercent),
-        sourceId: await sourceIdService.generateSourceId(),
-        maxSyncIdAtLoad: await sql.getValue("SELECT MAX(id) FROM sync"),
+        mainFontSize: parseInt(options.mainFontSize),
+        treeFontSize: parseInt(options.treeFontSize),
+        detailFontSize: parseInt(options.detailFontSize),
+        sourceId: sourceIdService.generateSourceId(),
+        maxEntityChangeIdAtLoad: sql.getValue("SELECT COALESCE(MAX(id), 0) FROM entity_changes"),
         instanceName: config.General ? config.General.instanceName : null,
-        appCss: await getAppCss()
+        appCssNoteIds: getAppCssNoteIds(),
+        isDev: env.isDev(),
+        isMainWindow: !req.query.extra
     });
 }
 
-async function getAppCss() {
-    let css = '';
-    const notes = attributeService.getNotesWithLabel('appCss');
-
-    for (const note of await notes) {
-        css += `/* ${note.noteId} */
-${note.content}
-
-`;
-    }
-
-    return css;
+function getAppCssNoteIds() {
+    return (attributeService.getNotesWithLabels(['appCss', 'appTheme']))
+        .map(note => note.noteId);
 }
 
 module.exports = {

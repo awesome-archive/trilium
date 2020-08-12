@@ -8,6 +8,11 @@ process.on('unhandledRejection', error => {
     require('./services/log').info(error);
 });
 
+process.on('SIGINT', function() {
+	console.log("Caught interrupt signal. Exiting.");
+	process.exit();
+});
+
 const { app, sessionParser } = require('./app');
 const debug = require('debug')('node:server');
 const fs = require('fs');
@@ -16,19 +21,36 @@ const https = require('https');
 const config = require('./services/config');
 const log = require('./services/log');
 const appInfo = require('./services/app_info');
-const messagingService = require('./services/messaging');
+const ws = require('./services/ws.js');
 const utils = require('./services/utils');
 const sqlInit = require('./services/sql_init');
 const port = require('./services/port');
+const host = require('./services/host');
+const semver = require('semver');
+
+if (!semver.satisfies(process.version, ">=10.5.0")) {
+    console.error("Trilium only supports node.js 10.5 and later");
+    process.exit(1);
+}
 
 let httpServer;
 
 async function startTrilium() {
     const usedPort = await port;
+    const usedHost = host;
 
     app.set('port', usedPort);
+    app.set('host', usedHost);
 
     if (config['Network']['https']) {
+        if (!config['Network']['keyPath'] || !config['Network']['keyPath'].trim().length) {
+            throw new Error("keyPath in config.ini is required when https=true, but it's empty");
+        }
+
+        if (!config['Network']['certPath'] || !config['Network']['certPath'].trim().length) {
+            throw new Error("certPath in config.ini is required when https=true, but it's empty");
+        }
+
         const options = {
             key: fs.readFileSync(config['Network']['keyPath']),
             cert: fs.readFileSync(config['Network']['certPath'])
@@ -46,16 +68,41 @@ async function startTrilium() {
 
     log.info(JSON.stringify(appInfo, null, 2));
 
+    const cpuInfos = require('os').cpus();
+    log.info(`CPU model: ${cpuInfos[0].model}, logical cores: ${cpuInfos.length} freq: ${cpuInfos[0].speed} Mhz`); // for perf. issues it's good to know the rough configuration
+
     /**
      * Listen on provided port, on all network interfaces.
      */
 
     httpServer.keepAliveTimeout = 120000 * 5;
-    httpServer.listen(usedPort);
-    httpServer.on('error', onError);
+    httpServer.listen(usedPort, usedHost);
+    httpServer.on('error', error => {
+            if (error.syscall !== 'listen') {
+                throw error;
+            }
+
+            // handle specific listen errors with friendly messages
+            switch (error.code) {
+                case 'EACCES':
+                    console.error(`Port ${usedPort} requires elevated privileges`);
+                    process.exit(1);
+                    break;
+
+                case 'EADDRINUSE':
+                    console.error(`Port ${usedPort} is already in use`);
+                    process.exit(1);
+                    break;
+
+                default:
+                    throw error;
+            }
+        }
+    )
+
     httpServer.on('listening', () => debug('Listening on port' + httpServer.address().port));
 
-    sqlInit.dbReady.then(() => messagingService.init(httpServer, sessionParser));
+    ws.init(httpServer, sessionParser);
 
     if (utils.isElectron()) {
         const electronRouting = require('./routes/electron');
@@ -64,29 +111,3 @@ async function startTrilium() {
 }
 
 startTrilium();
-
-/**
- * Event listener for HTTP server "error" event.
- */
-
-function onError(error) {
-    if (error.syscall !== 'listen') {
-        throw error;
-    }
-
-    // handle specific listen errors with friendly messages
-    switch (error.code) {
-        case 'EACCES':
-            console.error('Port requires elevated privileges');
-            process.exit(1);
-        break;
-
-        case 'EADDRINUSE':
-            console.error('Port is already in use');
-            process.exit(1);
-        break;
-
-        default:
-            throw error;
-    }
-}

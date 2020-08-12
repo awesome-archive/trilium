@@ -1,11 +1,9 @@
-FROM node:10.15.0-alpine
+FROM node:12.16.3-alpine
 
 # Create app directory
 WORKDIR /usr/src/app
 
-# Copy both package.json and package-lock.json
-# where available (npm@5+)
-COPY package.json package-lock.json ./
+COPY server-package.json package.json
 
 # Install app dependencies
 RUN set -x \
@@ -17,6 +15,8 @@ RUN set -x \
         libtool \
         make \
         nasm \
+        libpng-dev \
+        python \
     && npm install --production \
     && apk del .build-dependencies
 

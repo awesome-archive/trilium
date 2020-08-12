@@ -3,34 +3,39 @@
 const scriptService = require('../../services/script');
 const attributeService = require('../../services/attributes');
 const repository = require('../../services/repository');
+const syncService = require('../../services/sync');
 
-async function exec(req) {
+function exec(req) {
     try {
-        const result = await scriptService.executeScript(req.body.script, req.body.params, req.body.startNoteId,
+        const result = scriptService.executeScript(req.body.script, req.body.params, req.body.startNoteId,
             req.body.currentNoteId, req.body.originEntityName, req.body.originEntityId);
 
-        return { success: true, executionResult: result };
+        return {
+            success: true,
+            executionResult: result,
+            maxEntityChangeId: syncService.getMaxEntityChangeId()
+        };
     }
     catch (e) {
         return { success: false, error: e.message };
     }
 }
 
-async function run(req) {
-    const note = await repository.getNote(req.params.noteId);
+function run(req) {
+    const note = repository.getNote(req.params.noteId);
 
-    const result = await scriptService.executeNote(note, note);
+    const result = scriptService.executeNote(note, { originEntity: note });
 
     return { executionResult: result };
 }
 
-async function getStartupBundles() {
-    const notes = await attributeService.getNotesWithLabel("run", "frontendStartup");
+function getBundlesWithLabel(label, value) {
+    const notes = attributeService.getNotesWithLabel(label, value);
 
     const bundles = [];
 
     for (const note of notes) {
-        const bundle = await scriptService.getScriptBundle(note);
+        const bundle = scriptService.getScriptBundleForFrontend(note);
 
         if (bundle) {
             bundles.push(bundle);
@@ -40,12 +45,20 @@ async function getStartupBundles() {
     return bundles;
 }
 
-async function getRelationBundles(req) {
+function getStartupBundles() {
+    return getBundlesWithLabel("run", "frontendStartup");
+}
+
+function getWidgetBundles() {
+    return getBundlesWithLabel("widget");
+}
+
+function getRelationBundles(req) {
     const noteId = req.params.noteId;
-    const note = await repository.getNote(noteId);
+    const note = repository.getNote(noteId);
     const relationName = req.params.relationName;
 
-    const attributes = await note.getAttributes();
+    const attributes = note.getAttributes();
     const filtered = attributes.filter(attr => attr.type === 'relation' && attr.name === relationName);
     const targetNoteIds = filtered.map(relation => relation.value);
     const uniqueNoteIds = Array.from(new Set(targetNoteIds));
@@ -53,20 +66,33 @@ async function getRelationBundles(req) {
     const bundles = [];
 
     for (const noteId of uniqueNoteIds) {
-        bundles.push(await scriptService.getScriptBundleForNoteId(noteId));
+        const note = repository.getNote(noteId);
+
+        if (!note.isJavaScript() || note.getScriptEnv() !== 'frontend') {
+            continue;
+        }
+
+        const bundle = scriptService.getScriptBundleForFrontend(note);
+
+        if (bundle) {
+            bundles.push(bundle);
+        }
     }
 
     return bundles;
 }
 
-async function getBundle(req) {
-    return await scriptService.getScriptBundleForNoteId(req.params.noteId);
+function getBundle(req) {
+    const note = repository.getNote(req.params.noteId);
+
+    return scriptService.getScriptBundleForFrontend(note);
 }
 
 module.exports = {
     exec,
     run,
     getStartupBundles,
+    getWidgetBundles,
     getRelationBundles,
     getBundle
 };

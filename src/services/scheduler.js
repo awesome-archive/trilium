@@ -3,8 +3,8 @@ const repository = require('./repository');
 const cls = require('./cls');
 const sqlInit = require('./sql_init');
 
-async function runNotesWithLabel(runAttrValue) {
-    const notes = await repository.getEntities(`
+function runNotesWithLabel(runAttrValue) {
+    const notes = repository.getEntities(`
         SELECT notes.* 
         FROM notes 
           JOIN attributes ON attributes.noteId = notes.noteId
@@ -17,7 +17,7 @@ async function runNotesWithLabel(runAttrValue) {
           AND notes.isDeleted = 0`, [runAttrValue]);
 
     for (const note of notes) {
-        scriptService.executeNote(note, note);
+        scriptService.executeNoteNoException(note, { originEntity: note });
     }
 }
 

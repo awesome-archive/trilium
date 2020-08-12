@@ -2,21 +2,24 @@
 
 const syncService = require('../../services/sync');
 const syncUpdateService = require('../../services/sync_update');
-const syncTableService = require('../../services/sync_table');
+const entityChangesService = require('../../services/entity_changes.js');
 const sql = require('../../services/sql');
 const sqlInit = require('../../services/sql_init');
 const optionService = require('../../services/options');
 const contentHashService = require('../../services/content_hash');
 const log = require('../../services/log');
 const syncOptions = require('../../services/sync_options');
+const dateUtils = require('../../services/date_utils');
+const entityConstructor = require('../../entities/entity_constructor');
+const utils = require('../../services/utils');
 
-async function testSync() {
+function testSync() {
     try {
-        if (!await syncOptions.isSyncSetup()) {
+        if (!syncOptions.isSyncSetup()) {
             return { success: false, message: "Sync server host is not configured. Please configure sync first." };
         }
 
-        await syncService.login();
+        syncService.login();
 
         // login was successful so we'll kick off sync now
         // this is important in case when sync server has been just initialized
@@ -32,38 +35,40 @@ async function testSync() {
     }
 }
 
-async function getStats() {
-    if (!await sqlInit.schemaExists()) {
+function getStats() {
+    if (!sqlInit.schemaExists()) {
         // fail silently but prevent errors from not existing options table
         return {};
     }
 
     return {
-        initialized: await optionService.getOption('initialized') === 'true',
+        initialized: optionService.getOption('initialized') === 'true',
         stats: syncService.stats
     };
 }
 
-async function checkSync() {
+function checkSync() {
     return {
-        hashes: await contentHashService.getHashes(),
-        maxSyncId: await sql.getValue('SELECT MAX(id) FROM sync')
+        entityHashes: contentHashService.getEntityHashes(),
+        maxEntityChangeId: sql.getValue('SELECT COALESCE(MAX(id), 0) FROM entity_changes WHERE isSynced = 1')
     };
 }
 
-async function syncNow() {
-    return await syncService.sync();
+function syncNow() {
+    log.info("Received request to trigger sync now.");
+
+    return syncService.sync();
 }
 
-async function fillSyncRows() {
-    await syncTableService.fillAllSyncRows();
+function fillEntityChanges() {
+    entityChangesService.fillAllEntityChanges();
 
     log.info("Sync rows have been filled.");
 }
 
-async function forceFullSync() {
-    await optionService.setOption('lastSyncedPull', 0);
-    await optionService.setOption('lastSyncedPush', 0);
+function forceFullSync() {
+    optionService.setOption('lastSyncedPull', 0);
+    optionService.setOption('lastSyncedPush', 0);
 
     log.info("Forcing full sync.");
 
@@ -71,19 +76,38 @@ async function forceFullSync() {
     syncService.sync();
 }
 
-async function forceNoteSync(req) {
+function forceNoteSync(req) {
     const noteId = req.params.noteId;
 
-    await syncTableService.addNoteSync(noteId);
+    const now = dateUtils.utcNowDateTime();
 
-    for (const branchId of await sql.getColumn("SELECT branchId FROM branches WHERE isDeleted = 0 AND noteId = ?", [noteId])) {
-        await syncTableService.addBranchSync(branchId);
-        await syncTableService.addRecentNoteSync(branchId);
+    sql.execute(`UPDATE notes SET utcDateModified = ? WHERE noteId = ?`, [now, noteId]);
+    entityChangesService.addNoteEntityChange(noteId);
+
+    sql.execute(`UPDATE note_contents SET utcDateModified = ? WHERE noteId = ?`, [now, noteId]);
+    entityChangesService.addNoteContentEntityChange(noteId);
+
+    for (const branchId of sql.getColumn("SELECT branchId FROM branches WHERE noteId = ?", [noteId])) {
+        sql.execute(`UPDATE branches SET utcDateModified = ? WHERE branchId = ?`, [now, branchId]);
+
+        entityChangesService.addBranchEntityChange(branchId);
     }
 
-    for (const noteRevisionId of await sql.getColumn("SELECT noteRevisionId FROM note_revisions WHERE noteId = ?", [noteId])) {
-        await syncTableService.addNoteRevisionSync(noteRevisionId);
+    for (const attributeId of sql.getColumn("SELECT attributeId FROM attributes WHERE noteId = ?", [noteId])) {
+        sql.execute(`UPDATE attributes SET utcDateModified = ? WHERE attributeId = ?`, [now, attributeId]);
+
+        entityChangesService.addAttributeEntityChange(attributeId);
     }
+
+    for (const noteRevisionId of sql.getColumn("SELECT noteRevisionId FROM note_revisions WHERE noteId = ?", [noteId])) {
+        sql.execute(`UPDATE note_revisions SET utcDateModified = ? WHERE noteRevisionId = ?`, [now, noteRevisionId]);
+        entityChangesService.addNoteRevisionEntityChange(noteRevisionId);
+
+        sql.execute(`UPDATE note_revision_contents SET utcDateModified = ? WHERE noteRevisionId = ?`, [now, noteRevisionId]);
+        entityChangesService.addNoteRevisionContentEntityChange(noteRevisionId);
+    }
+
+    entityChangesService.addRecentNoteEntityChange(noteId);
 
     log.info("Forcing note sync for " + noteId);
 
@@ -91,41 +115,59 @@ async function forceNoteSync(req) {
     syncService.sync();
 }
 
-async function getChanged(req) {
-    const lastSyncId = parseInt(req.query.lastSyncId);
+function getChanged(req) {
+    const startTime = Date.now();
 
-    const syncs = await sql.getRows("SELECT * FROM sync WHERE id > ? LIMIT 1000", [lastSyncId]);
+    const lastEntityChangeId = parseInt(req.query.lastEntityChangedId);
 
-    return {
-        syncs: await syncService.getSyncRecords(syncs),
-        maxSyncId: await sql.getValue('SELECT MAX(id) FROM sync')
+    const entityChanges = sql.getRows("SELECT * FROM entity_changes WHERE isSynced = 1 AND id > ? LIMIT 1000", [lastEntityChangeId]);
+
+    const ret = {
+        entityChanges: syncService.getEntityChangesRecords(entityChanges),
+        maxEntityChangeId: sql.getValue('SELECT COALESCE(MAX(id), 0) FROM entity_changes WHERE isSynced = 1')
     };
+
+    if (ret.entityChanges.length > 0) {
+        log.info(`Returning ${ret.entityChanges.length} entity changes in ${Date.now() - startTime}ms`);
+    }
+
+    return ret;
 }
 
-async function update(req) {
+function update(req) {
     const sourceId = req.body.sourceId;
     const entities = req.body.entities;
 
     for (const {sync, entity} of entities) {
-        await syncUpdateService.updateEntity(sync, entity, sourceId);
+        syncUpdateService.updateEntity(sync, entity, sourceId);
     }
 }
 
-async function syncFinished() {
+function syncFinished() {
     // after first sync finishes, the application is ready to be used
     // this is meaningless but at the same time harmless (idempotent) for further syncs
-    await sqlInit.dbInitialized();
+    sqlInit.setDbAsInitialized();
+}
+
+function queueSector(req) {
+    const entityName = utils.sanitizeSqlIdentifier(req.params.entityName);
+    const sector = utils.sanitizeSqlIdentifier(req.params.sector);
+
+    const entityPrimaryKey = entityConstructor.getEntityFromEntityName(entityName).primaryKeyName;
+
+    entityChangesService.addEntityChangesForSector(entityName, entityPrimaryKey, sector);
 }
 
 module.exports = {
     testSync,
     checkSync,
     syncNow,
-    fillSyncRows,
+    fillEntityChanges,
     forceFullSync,
     forceNoteSync,
     getChanged,
     update,
     getStats,
-    syncFinished
+    syncFinished,
+    queueSector
 };

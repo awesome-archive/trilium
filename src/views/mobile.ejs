@@ -2,73 +2,108 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
+    <link rel="shortcut icon" href="favicon.ico">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
     <title>Trilium Notes</title>
+    <link rel="apple-touch-icon" sizes="180x180" href="images/app-icons/ios/apple-touch-icon.png">
+
+    <style>
+        .lds-roller {
+            display: inline-block;
+            position: relative;
+            width: 80px;
+            height: 80px;
+        }
+        .lds-roller div {
+            animation: lds-roller 1.2s cubic-bezier(0.5, 0, 0.5, 1) infinite;
+            transform-origin: 40px 40px;
+        }
+        .lds-roller div:after {
+            content: " ";
+            display: block;
+            position: absolute;
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: #000;
+            margin: -4px 0 0 -4px;
+        }
+        .lds-roller div:nth-child(1) {
+            animation-delay: -0.036s;
+        }
+        .lds-roller div:nth-child(1):after {
+            top: 63px;
+            left: 63px;
+        }
+        .lds-roller div:nth-child(2) {
+            animation-delay: -0.072s;
+        }
+        .lds-roller div:nth-child(2):after {
+            top: 68px;
+            left: 56px;
+        }
+        .lds-roller div:nth-child(3) {
+            animation-delay: -0.108s;
+        }
+        .lds-roller div:nth-child(3):after {
+            top: 71px;
+            left: 48px;
+        }
+        .lds-roller div:nth-child(4) {
+            animation-delay: -0.144s;
+        }
+        .lds-roller div:nth-child(4):after {
+            top: 72px;
+            left: 40px;
+        }
+        .lds-roller div:nth-child(5) {
+            animation-delay: -0.18s;
+        }
+        .lds-roller div:nth-child(5):after {
+            top: 71px;
+            left: 32px;
+        }
+        .lds-roller div:nth-child(6) {
+            animation-delay: -0.216s;
+        }
+        .lds-roller div:nth-child(6):after {
+            top: 68px;
+            left: 24px;
+        }
+        .lds-roller div:nth-child(7) {
+            animation-delay: -0.252s;
+        }
+        .lds-roller div:nth-child(7):after {
+            top: 63px;
+            left: 17px;
+        }
+        .lds-roller div:nth-child(8) {
+            animation-delay: -0.288s;
+        }
+        .lds-roller div:nth-child(8):after {
+            top: 56px;
+            left: 12px;
+        }
+        @keyframes lds-roller {
+            0% {
+                transform: rotate(0deg);
+            }
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
 </head>
 <body class="mobile">
-<div class="row" id="container-row" style="display: none;">
+<noscript>Trilium requires JavaScript to be enabled.</noscript>
 
-    <div id="left-pane" class="d-sm-flex d-md-flex d-lg-flex d-xl-flex col-12 col-sm-5 col-md-4 col-lg-4 col-xl-4">
-        <div id="global-buttons">
-            <a id="create-top-level-note-button" title="Create new top level note" class="icon-action jam jam-plus-circle"></a>
-
-            <a id="collapse-tree-button" title="Collapse note tree. Shortcut ALT+C" class="icon-action jam jam-layers"></a>
-
-            <a id="scroll-to-current-note-button" title="Scroll to current note. Shortcut CTRL+." class="icon-action jam jam-download"></a>
-
-            <div class="dropdown">
-                <a id="global-actions-button" title="Global actions" class="icon-action jam jam-cogs dropdown-toggle" data-toggle="dropdown"></a>
-
-                <div class="dropdown-menu dropdown-menu-right">
-                    <a class="dropdown-item" id="switch-to-desktop-button"><span class="jam jam-computer"></span> Switch to desktop version</a>
-                    <a class="dropdown-item" id="log-out-button"><span class="jam jam-log-out"></span> Logout</a>
-                </div>
-            </div>
-        </div>
-
-        <div id="tree"></div>
-    </div>
-
-    <div id="detail" class="d-none d-sm-flex d-md-flex d-lg-flex d-xl-flex col-12 col-sm-7 col-md-8 col-lg-8">
-        <div id="note-title-row">
-            <button type="button" id="note-menu-button" class="action-button jam jam-align-justify"></button>
-
-            <input autocomplete="off" value="" id="note-title" class="form-control" tabindex="1">
-
-            <button type="button" id="close-detail-button" class="action-button d-sm-none d-md-none d-lg-none d-xl-none" aria-label="Close">
-                <span aria-hidden="true">&times;</span>
-            </button>
-        </div>
-
-        <div style="position: relative; height: 100%;"> <!-- This div here is for saved indicator to have suitable parent -->
-            <span id="saved-indicator" title="All changes have been saved" class="jam jam-check"></span>
-
-            <div id="detail-content">
-                <div id="note-detail-text" class="note-detail-component" tabindex="10000"></div>
-
-                <div id="note-detail-code" class="note-detail-component"></div>
-
-                <% include details/search.ejs %>
-
-                <% include details/render.ejs %>
-
-                <% include details/file.ejs %>
-
-                <% include details/image.ejs %>
-
-                <% include details/relation_map.ejs %>
-
-                <% include details/protected_session_password.ejs %>
-            </div>
-        </div>
-    </div>
-
-    <% include dialogs/protected_session_password.ejs %>
-
-    <div class="dropdown-menu dropdown-menu-sm" id="context-menu-container"></div>
-
-    <form action="logout" id="logout-form" method="POST" style="display: none;"></form>
+<div style="text-align: center" id="loading-indicator">
+    <div class="lds-roller"><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div></div>
 </div>
+
+<div id="toast-container" class="d-flex flex-column justify-content-center align-items-center"></div>
+
+<div class="dropdown-menu dropdown-menu-sm" id="context-menu-container"></div>
 
 <script type="text/javascript">
     window.baseApiUrl = 'api/';
@@ -76,12 +111,17 @@
     window.glob = {
         activeDialog: null,
         sourceId: '<%= sourceId %>',
-        maxSyncIdAtLoad: <%= maxSyncIdAtLoad %>,
-        instanceName: '<%= instanceName %>'
+        maxEntityChangeIdAtLoad: <%= maxEntityChangeIdAtLoad %>,
+        instanceName: '<%= instanceName %>',
+        csrfToken: '<%= csrfToken %>',
+        isDev: <%= isDev %>,
+        appCssNoteIds: <%- JSON.stringify(appCssNoteIds) %>
     };
 </script>
 
 <script src="libraries/jquery.min.js"></script>
+
+<script src="libraries/dayjs.min.js"></script>
 
 <link href="libraries/fancytree/skin-win8/ui.fancytree.css" rel="stylesheet">
 <script src="libraries/fancytree/jquery.fancytree-all-deps.min.js"></script>
@@ -89,19 +129,14 @@
 <link href="libraries/bootstrap/css/bootstrap.min.css" rel="stylesheet">
 <script src="libraries/bootstrap/js/bootstrap.bundle.min.js"></script>
 
-<script src="javascripts/mobile.js" crossorigin type="module"></script>
+<link href="libraries/ckeditor/ckeditor-content.css" rel="stylesheet">
 
+<script src="app/mobile.js" crossorigin type="module"></script>
+
+<link href="stylesheets/themes.css" rel="stylesheet">
 <link href="stylesheets/style.css" rel="stylesheet">
-<link href="stylesheets/mobile.css" rel="stylesheet">
 
-<script src="libraries/bootstrap-notify.min.js"></script>
+<link rel="stylesheet" type="text/css" href="libraries/boxicons/css/boxicons.min.css">
 
-<link rel="stylesheet" type="text/css" href="libraries/jam/css/jam.min.css">
-
-<script type="text/javascript">
-    // we hide container initally because otherwise it is rendered first without CSS and then flickers into
-    // final form which is pretty ugly.
-    $("#container-row").show();
-</script>
 </body>
 </html>

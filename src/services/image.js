@@ -1,95 +1,139 @@
 "use strict";
 
 const repository = require('./repository');
+const log = require('./log');
 const protectedSessionService = require('./protected_session');
 const noteService = require('./notes');
-const imagemin = require('imagemin');
-const imageminMozJpeg = require('imagemin-mozjpeg');
-const imageminPngQuant = require('imagemin-pngquant');
-const imageminGifLossy = require('imagemin-giflossy');
+const optionService = require('./options');
+const sql = require('./sql');
 const jimp = require('jimp');
 const imageType = require('image-type');
 const sanitizeFilename = require('sanitize-filename');
+const noteRevisionService = require('./note_revisions.js');
+const isSvg = require('is-svg');
 
-async function saveImage(buffer, originalName, parentNoteId) {
-    const resizedImage = await resize(buffer);
-    const optimizedImage = await optimize(resizedImage);
+async function processImage(uploadBuffer, originalName, shrinkImageSwitch) {
+    const origImageFormat = getImageType(uploadBuffer);
 
-    const imageFormat = imageType(optimizedImage);
+    if (origImageFormat && ["webp", "svg"].includes(origImageFormat.ext)) {
+        // JIMP does not support webp at the moment: https://github.com/oliver-moran/jimp/issues/144
+        shrinkImageSwitch = false;
+    }
 
-    const parentNote = await repository.getNote(parentNoteId);
+    const finalImageBuffer = shrinkImageSwitch ? await shrinkImage(uploadBuffer) : uploadBuffer;
 
-    const fileNameWithoutExtension = originalName.replace(/\.[^/.]+$/, "");
-    const fileName = sanitizeFilename(fileNameWithoutExtension + "." + imageFormat.ext);
+    const imageFormat = getImageType(finalImageBuffer);
 
-    const {note} = await noteService.createNote(parentNoteId, fileName, optimizedImage, {
-        target: 'into',
+    return {
+        buffer: finalImageBuffer,
+        imageFormat
+    };
+}
+
+function getImageType(buffer) {
+    if (isSvg(buffer)) {
+        return {
+            ext: 'svg'
+        }
+    }
+    else {
+        return imageType(buffer);
+    }
+}
+
+function getImageMimeFromExtension(ext) {
+    ext = ext.toLowerCase();
+
+    return 'image/' + (ext === 'svg' ? 'svg+xml' : ext);
+}
+
+function updateImage(noteId, uploadBuffer, originalName) {
+    log.info(`Updating image ${noteId}: ${originalName}`);
+
+    const note = repository.getNote(noteId);
+
+    noteRevisionService.createNoteRevision(note);
+    noteRevisionService.protectNoteRevisions(note);
+
+    note.setLabel('originalFileName', originalName);
+
+    // resizing images asynchronously since JIMP does not support sync operation
+    processImage(uploadBuffer, originalName, true).then(({buffer, imageFormat}) => {
+        sql.transactional(() => {
+            note.mime = getImageMimeFromExtension(imageFormat.ext);
+            note.setContent(buffer);
+        })
+    });
+}
+
+function saveImage(parentNoteId, uploadBuffer, originalName, shrinkImageSwitch) {
+    log.info(`Saving image ${originalName}`);
+
+    const fileName = sanitizeFilename(originalName);
+
+    const parentNote = repository.getNote(parentNoteId);
+
+    const {note} = noteService.createNewNote({
+        parentNoteId,
+        title: fileName,
         type: 'image',
-        isProtected: parentNote.isProtected && protectedSessionService.isProtectedSessionAvailable(),
-        mime: 'image/' + imageFormat.ext.toLowerCase(),
-        attributes: [
-            { type: 'label', name: 'originalFileName', value: originalName },
-            { type: 'label', name: 'fileSize', value: optimizedImage.byteLength }
-        ]
+        mime: 'unknown',
+        content: '',
+        isProtected: parentNote.isProtected && protectedSessionService.isProtectedSessionAvailable()
+    });
+
+    note.addLabel('originalFileName', originalName);
+
+    // resizing images asynchronously since JIMP does not support sync operation
+    processImage(uploadBuffer, originalName, shrinkImageSwitch).then(({buffer, imageFormat}) => {
+        sql.transactional(() => {
+            note.mime = getImageMimeFromExtension(imageFormat.ext);
+            note.setContent(buffer);
+        })
     });
 
     return {
         fileName,
+        note,
         noteId: note.noteId,
-        url: `/api/images/${note.noteId}/${fileName}`
+        url: `api/images/${note.noteId}/${fileName}`
     };
 }
 
-const MAX_SIZE = 1000;
-const MAX_BYTE_SIZE = 200000; // images should have under 100 KBs
+async function shrinkImage(buffer) {
+    const jpegQuality = optionService.getOptionInt('imageJpegQuality');
+    let finalImageBuffer = await resize(buffer, jpegQuality);
 
-async function resize(buffer) {
+    // if resizing & shrinking did not help with size then save the original
+    // (can happen when e.g. resizing PNG into JPEG)
+    if (finalImageBuffer.byteLength >= buffer.byteLength) {
+        finalImageBuffer = buffer;
+    }
+
+    return finalImageBuffer;
+}
+
+async function resize(buffer, quality) {
+    const imageMaxWidthHeight = optionService.getOptionInt('imageMaxWidthHeight');
+
     const image = await jimp.read(buffer);
 
-    if (image.bitmap.width > image.bitmap.height && image.bitmap.width > MAX_SIZE) {
-        image.resize(MAX_SIZE, jimp.AUTO);
+    if (image.bitmap.width > image.bitmap.height && image.bitmap.width > imageMaxWidthHeight) {
+        image.resize(imageMaxWidthHeight, jimp.AUTO);
     }
-    else if (image.bitmap.height > MAX_SIZE) {
-        image.resize(jimp.AUTO, MAX_SIZE);
-    }
-    else if (buffer.byteLength <= MAX_BYTE_SIZE) {
-        return buffer;
+    else if (image.bitmap.height > imageMaxWidthHeight) {
+        image.resize(jimp.AUTO, imageMaxWidthHeight);
     }
 
-    // we do resizing with max quality which will be trimmed during optimization step next
-    image.quality(100);
+    image.quality(quality);
 
     // when converting PNG to JPG we lose alpha channel, this is replaced by white to match Trilium white background
     image.background(0xFFFFFFFF);
 
-    // getBuffer doesn't support promises so this workaround
-    return await new Promise((resolve, reject) => image.getBuffer(jimp.MIME_JPEG, (err, data) => {
-        if (err) {
-            reject(err);
-        }
-        else {
-            resolve(data);
-        }
-    }));
-}
-
-async function optimize(buffer) {
-    return await imagemin.buffer(buffer, {
-        plugins: [
-            imageminMozJpeg({
-                quality: 50
-            }),
-            imageminPngQuant({
-                quality: "0-70"
-            }),
-            imageminGifLossy({
-                lossy: 80,
-                optimize: '3' // needs to be string
-            })
-        ]
-    });
+    return await image.getBufferAsync(jimp.MIME_JPEG);
 }
 
 module.exports = {
-    saveImage
+    saveImage,
+    updateImage
 };

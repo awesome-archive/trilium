@@ -11,10 +11,12 @@ const eventService = require('../../services/events');
 const cls = require('../../services/cls');
 const sqlInit = require('../../services/sql_init');
 const sql = require('../../services/sql');
+const optionService = require('../../services/options');
+const ApiToken = require('../../entities/api_token');
 
-async function loginSync(req) {
-    if (!await sqlInit.schemaExists()) {
-        return [400, { message: "DB schema does not exist, can't sync." }];
+function loginSync(req) {
+    if (!sqlInit.schemaExists()) {
+        return [500, { message: "DB schema does not exist, can't sync." }];
     }
 
     const timestampStr = req.body.timestamp;
@@ -23,51 +25,52 @@ async function loginSync(req) {
 
     const now = new Date();
 
-    if (Math.abs(timestamp.getTime() - now.getTime()) > 5000) {
-        return [400, { message: 'Auth request time is out of sync' }];
+    // login token is valid for 5 minutes
+    if (Math.abs(timestamp.getTime() - now.getTime()) > 5 * 60 * 1000) {
+        return [401, { message: 'Auth request time is out of sync, please check that both client and server have correct time.' }];
     }
 
     const syncVersion = req.body.syncVersion;
 
     if (syncVersion !== appInfo.syncVersion) {
-        return [400, { message: `Non-matching sync versions, local is version ${appInfo.syncVersion}, remote is ${syncVersion}` }];
+        return [400, { message: `Non-matching sync versions, local is version ${appInfo.syncVersion}, remote is ${syncVersion}. It is recommended to run same version of Trilium on both sides of sync.` }];
     }
 
-    const documentSecret = await options.getOption('documentSecret');
+    const documentSecret = options.getOption('documentSecret');
     const expectedHash = utils.hmac(documentSecret, timestampStr);
 
     const givenHash = req.body.hash;
 
     if (expectedHash !== givenHash) {
-        return [400, { message: "Sync login credentials are incorrect." }];
+        return [400, { message: "Sync login credentials are incorrect. It looks like you're trying to sync two different initialized documents which is not possible." }];
     }
 
     req.session.loggedIn = true;
 
     return {
         sourceId: sourceIdService.getCurrentSourceId(),
-        maxSyncId: await sql.getValue("SELECT MAX(id) FROM sync")
+        maxEntityChangeId: sql.getValue("SELECT COALESCE(MAX(id), 0) FROM entity_changes WHERE isSynced = 1")
     };
 }
 
-async function loginToProtectedSession(req) {
+function loginToProtectedSession(req) {
     const password = req.body.password;
 
-    if (!await passwordEncryptionService.verifyPassword(password)) {
+    if (!passwordEncryptionService.verifyPassword(password)) {
         return {
             success: false,
             message: "Given current password doesn't match hash"
         };
     }
 
-    const decryptedDataKey = await passwordEncryptionService.getDataKey(password);
+    const decryptedDataKey = passwordEncryptionService.getDataKey(password);
 
     const protectedSessionId = protectedSessionService.setDataKey(decryptedDataKey);
 
     // this is set here so that event handlers have access to the protected session
-    cls.namespace.set('protectedSessionId', protectedSessionId);
+    cls.set('protectedSessionId', protectedSessionId);
 
-    await eventService.emit(eventService.ENTER_PROTECTED_SESSION);
+    eventService.emit(eventService.ENTER_PROTECTED_SESSION);
 
     return {
         success: true,
@@ -75,7 +78,28 @@ async function loginToProtectedSession(req) {
     };
 }
 
+function token(req) {
+    const username = req.body.username;
+    const password = req.body.password;
+
+    const isUsernameValid = username === optionService.getOption('username');
+    const isPasswordValid = passwordEncryptionService.verifyPassword(password);
+
+    if (!isUsernameValid || !isPasswordValid) {
+        return [401, "Incorrect username/password"];
+    }
+
+    const apiToken = new ApiToken({
+        token: utils.randomSecureToken()
+    }).save();
+
+    return {
+        token: apiToken.token
+    };
+}
+
 module.exports = {
     loginSync,
-    loginToProtectedSession
+    loginToProtectedSession,
+    token
 };

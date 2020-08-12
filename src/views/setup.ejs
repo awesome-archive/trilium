@@ -4,10 +4,49 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
     <title>Setup</title>
+
+    <style>
+        .lds-ring {
+            display: inline-block;
+            position: relative;
+            width: 60px;
+            height: 60px;
+        }
+        .lds-ring div {
+            box-sizing: border-box;
+            display: block;
+            position: absolute;
+            width: 48px;
+            height: 48px;
+            margin: 8px;
+            border: 6px solid black;
+            border-radius: 50%;
+            animation: lds-ring 1.2s cubic-bezier(0.5, 0, 0.5, 1) infinite;
+            border-color: black transparent transparent transparent;
+        }
+        .lds-ring div:nth-child(1) {
+            animation-delay: -0.45s;
+        }
+        .lds-ring div:nth-child(2) {
+            animation-delay: -0.3s;
+        }
+        .lds-ring div:nth-child(3) {
+            animation-delay: -0.15s;
+        }
+        @keyframes lds-ring {
+            0% {
+                transform: rotate(0deg);
+            }
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
 </head>
 <body>
+<noscript>Trilium requires JavaScript to be enabled.</noscript>
 <div class="container">
-    <div id="setup-dialog" class="col-md-12 col-lg-8 col-xl-6 mx-auto" style="padding-top: 25px;">
+    <div id="setup-dialog" class="col-md-12 col-lg-8 col-xl-6 mx-auto" style="padding-top: 25px; font-size: larger; display: none;">
         <h1>Trilium Notes setup</h1>
 
         <div class="alert alert-warning" id="alert" style="display: none;">
@@ -18,13 +57,13 @@
                 <label><input type="radio" name="setup-type" value="new-document" data-bind="checked: setupType">
                     I'm a new user and I want to create new Trilium document for my notes</label>
             </div>
-            <div class="radio" data-bind="if: instanceType == 'server'" style="margin-bottom: 15px;">
+            <div class="radio" style="margin-bottom: 15px;">
                 <label><input type="radio" name="setup-type" value="sync-from-desktop" data-bind="checked: setupType">
                     I have desktop instance already and I want to setup sync with it</label>
             </div>
-            <div class="radio" data-bind="if: instanceType == 'desktop'" style="margin-bottom: 15px;">
+            <div class="radio" style="margin-bottom: 15px;">
                 <label><input type="radio" name="setup-type" value="sync-from-server" data-bind="checked: setupType">
-                    I have server instance up and I want to setup sync with it</label>
+                    I have server instance already and I want to setup sync with it</label>
             </div>
 
             <button type="button" data-bind="disable: !setupTypeSelected(), click: selectSetupType" class="btn btn-primary">Next</button>
@@ -48,12 +87,49 @@
                 <label for="password2">Repeat password</label>
                 <input type="password" class="form-control" data-bind="value: password2" placeholder="Password">
             </div>
+            <div class="form-group">
+                <label for="password2">Theme</label>
+
+                <div style="display: flex; justify-content: space-around;">
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" name="theme" id="theme-white" value="white" data-bind="checked: theme" checked>
+                        <label class="form-check-label" for="theme-white">white</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" name="theme" id="theme-dark" value="dark" data-bind="checked: theme">
+                        <label class="form-check-label" for="theme-dark">dark</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" name="theme" id="theme-black" value="black" data-bind="checked: theme">
+                        <label class="form-check-label" for="theme-black">black</label>
+                    </div>
+                </div>
+
+                <p style="font-size: smaller;margin-top: 10px;"><em>Theme can be later changed in Options -> Appearance.</em></p>
+            </div>
 
             <button type="button" data-bind="click: back" class="btn btn-secondary">Back</button>
 
             &nbsp;
 
             <button type="button" data-bind="click: finish" class="btn btn-primary">Finish setup</button>
+        </div>
+
+        <div data-bind="visible: step() == 'new-document-in-progress'">
+            <h2>Document initialization in progress</h2>
+
+            <div style="display: flex; justify-content: flex-start; margin-top: 20px;">
+                <div class="lds-ring" style="margin-right: 20px;">
+                    <div></div>
+                    <div></div>
+                    <div></div>
+                    <div></div>
+                </div>
+
+                <div style="line-height: 60px;">
+                    <p>You will be shortly redirected to the application.</p>
+                </div>
+            </div>
         </div>
 
         <div data-bind="visible: step() == 'sync-from-desktop'">
@@ -117,23 +193,25 @@
 </div>
 
 <script type="text/javascript">
-    const baseApiUrl = 'api/';
-    const glob = {
+    window.glob = {
         sourceId: ''
     };
-    const syncInProgress = <%= syncInProgress ? 'true' : 'false' %>;
+
+    window.syncInProgress = <%= syncInProgress ? 'true' : 'false' %>;
 </script>
 
 <!-- Required for correct loading of scripts in Electron -->
 <script>if (typeof module === 'object') {window.module = module; module = undefined;}</script>
 
 <script src="libraries/jquery.min.js"></script>
+<script src="libraries/jquery.hotkeys.js"></script>
 
 <link href="libraries/bootstrap/css/bootstrap.min.css" rel="stylesheet">
 <script src="libraries/bootstrap/js/bootstrap.bundle.min.js"></script>
 
 <script src="libraries/knockout.min.js"></script>
 
-<script src="javascripts/setup.js" crossorigin type="module"></script>
+<script src="app/setup.js" crossorigin type="module"></script>
+<link href="stylesheets/themes.css" rel="stylesheet">
 </body>
 </html>

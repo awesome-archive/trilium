@@ -3,20 +3,34 @@
 const repository = require('../../services/repository');
 const enexImportService = require('../../services/import/enex');
 const opmlImportService = require('../../services/import/opml');
-const tarImportService = require('../../services/import/tar');
+const zipImportService = require('../../services/import/zip');
 const singleImportService = require('../../services/import/single');
 const cls = require('../../services/cls');
 const path = require('path');
+const noteCacheLoader = require('../../services/note_cache/note_cache_loader.js');
+const log = require('../../services/log');
+const TaskContext = require('../../services/task_context.js');
 
 async function importToBranch(req) {
-    const parentNoteId = req.params.parentNoteId;
+    const {parentNoteId} = req.params;
+    const {taskId, last} = req.body;
+
+    const options = {
+        safeImport: req.body.safeImport !== 'false',
+        shrinkImages: req.body.shrinkImages !== 'false',
+        textImportedAsText: req.body.textImportedAsText !== 'false',
+        codeImportedAsCode: req.body.codeImportedAsCode !== 'false',
+        explodeArchives: req.body.explodeArchives !== 'false',
+        replaceUnderscoresWithSpaces: req.body.replaceUnderscoresWithSpaces !== 'false'
+    };
+
     const file = req.file;
 
     if (!file) {
         return [400, "No file has been uploaded"];
     }
 
-    const parentNote = await repository.getNote(parentNoteId);
+    const parentNote = repository.getNote(parentNoteId);
 
     if (!parentNote) {
         return [404, `Note ${parentNoteId} doesn't exist.`];
@@ -28,24 +42,44 @@ async function importToBranch(req) {
     // and may produce unintended consequences
     cls.disableEntityEvents();
 
-    if (extension === '.tar') {
-        return await tarImportService.importTar(file.buffer, parentNote);
+    let note; // typically root of the import - client can show it after finishing the import
+
+    const taskContext = TaskContext.getInstance(taskId, 'import', options);
+
+    try {
+        if (extension === '.zip' && options.explodeArchives) {
+            note = await zipImportService.importZip(taskContext, file.buffer, parentNote);
+        } else if (extension === '.opml' && options.explodeArchives) {
+            note = await opmlImportService.importOpml(taskContext, file.buffer, parentNote);
+        } else if (extension === '.enex' && options.explodeArchives) {
+            note = await enexImportService.importEnex(taskContext, file, parentNote);
+        } else {
+            note = await singleImportService.importSingleFile(taskContext, file, parentNote);
+        }
     }
-    else if (extension === '.opml') {
-        return await opmlImportService.importOpml(file.buffer, parentNote);
+    catch (e) {
+        const message = "Import failed with following error: '" + e.message + "'. More details might be in the logs.";
+        taskContext.reportError(message);
+
+        log.error(message + e.stack);
+
+        return [500, message];
     }
-    else if (extension === '.md') {
-        return await singleImportService.importMarkdown(file, parentNote);
+
+    if (last === "true") {
+        // small timeout to avoid race condition (message is received before the transaction is committed)
+        setTimeout(() => taskContext.taskSucceeded({
+            parentNoteId: parentNoteId,
+            importedNoteId: note.noteId
+        }), 1000);
     }
-    else if (extension === '.html' || extension === '.htm') {
-        return await singleImportService.importHtml(file, parentNote);
-    }
-    else if (extension === '.enex') {
-        return await enexImportService.importEnex(file, parentNote);
-    }
-    else {
-        return [400, `Unrecognized extension ${extension}, must be .tar or .opml`];
-    }
+
+    // import has deactivated note events so note cache is not updated
+    // instead we force it to reload (can be async)
+
+    noteCacheLoader.load();
+
+    return note;
 }
 
 module.exports = {

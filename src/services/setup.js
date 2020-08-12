@@ -5,9 +5,15 @@ const repository = require('./repository');
 const optionService = require('./options');
 const syncOptions = require('./sync_options');
 const request = require('./request');
+const appInfo = require('./app_info');
+const utils = require('./utils');
 
 async function hasSyncServerSchemaAndSeed() {
     const response = await requestToSyncServer('GET', '/api/setup/status');
+
+    if (response.syncVersion !== appInfo.syncVersion) {
+        throw new Error(`Could not setup sync since local sync protocol version is ${appInfo.syncVersion} while remote is ${response.syncVersion}. To fix this issue, use same Trilium version on all instances.`);
+    }
 
     return response.schemaExists;
 }
@@ -16,9 +22,9 @@ function triggerSync() {
     log.info("Triggering sync.");
 
     // it's ok to not wait for it here
-    syncService.sync().then(async res => {
+    syncService.sync().then(res => {
         if (res.success) {
-            await sqlInit.dbInitialized();
+            sqlInit.setDbAsInitialized();
         }
     });
 }
@@ -27,27 +33,30 @@ async function sendSeedToSyncServer() {
     log.info("Initiating sync to server");
 
     await requestToSyncServer('POST', '/api/setup/sync-seed', {
-        options: await getSyncSeedOptions()
+        options: getSyncSeedOptions(),
+        syncVersion: appInfo.syncVersion
     });
 
     // this is completely new sync, need to reset counters. If this would not be new sync,
     // the previous request would have failed.
-    await optionService.setOption('lastSyncedPush', 0);
-    await optionService.setOption('lastSyncedPull', 0);
+    optionService.setOption('lastSyncedPush', 0);
+    optionService.setOption('lastSyncedPull', 0);
 }
 
 async function requestToSyncServer(method, path, body = null) {
-    return await request.exec({
+    const timeout = syncOptions.getSyncTimeout();
+
+    return await utils.timeLimit(request.exec({
         method,
-        url: await syncOptions.getSyncServerHost() + path,
+        url: syncOptions.getSyncServerHost() + path,
         body,
-        proxy: await syncOptions.getSyncProxy(),
-        timeout: await syncOptions.getSyncTimeout()
-    });
+        proxy: syncOptions.getSyncProxy(),
+        timeout: timeout
+    }), timeout);
 }
 
 async function setupSyncFromSyncServer(syncServerHost, syncProxy, username, password) {
-    if (await sqlInit.isDbInitialized()) {
+    if (sqlInit.isDbInitialized()) {
         return {
             result: 'failure',
             error: 'DB is already initialized.'
@@ -55,20 +64,32 @@ async function setupSyncFromSyncServer(syncServerHost, syncProxy, username, pass
     }
 
     try {
-        log.info("Getting document options from sync server.");
+        log.info("Getting document options FROM sync server.");
 
         // response is expected to contain documentId and documentSecret options
-        const options = await request.exec({
+        const resp = await request.exec({
             method: 'get',
             url: syncServerHost + '/api/setup/sync-seed',
             auth: {
                 'user': username,
                 'pass': password
             },
-            proxy: syncProxy
+            proxy: syncProxy,
+            timeout: 30000 // seed request should not take long
         });
 
-        await sqlInit.createDatabaseForSync(options, syncServerHost, syncProxy);
+        if (resp.syncVersion !== appInfo.syncVersion) {
+            const message = `Could not setup sync since local sync protocol version is ${appInfo.syncVersion} while remote is ${resp.syncVersion}. To fix this issue, use same Trilium version on all instances.`;
+
+            log.error(message);
+
+            return {
+                result: 'failure',
+                error: message
+            }
+        }
+
+        sqlInit.createDatabaseForSync(resp.options, syncServerHost, syncProxy);
 
         triggerSync();
 
@@ -84,10 +105,10 @@ async function setupSyncFromSyncServer(syncServerHost, syncProxy, username, pass
     }
 }
 
-async function getSyncSeedOptions() {
+function getSyncSeedOptions() {
     return [
-        await repository.getOption('documentId'),
-        await repository.getOption('documentSecret')
+        repository.getOption('documentId'),
+        repository.getOption('documentSecret')
     ];
 }
 

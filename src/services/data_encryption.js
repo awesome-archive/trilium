@@ -18,25 +18,26 @@ function shaArray(content) {
 }
 
 function pad(data) {
-    let padded = Array.from(data);
-
-    if (data.length >= 16) {
-        padded = padded.slice(0, 16);
+    if (data.length > 16) {
+        data = data.slice(0, 16);
     }
-    else {
-        padded = padded.concat(Array(16 - padded.length).fill(0));
+    else if (data.length < 16) {
+        const zeros = Array(16 - data.length).fill(0);
+
+        data = Buffer.concat([data, Buffer.from(zeros)]);
     }
 
-    return Buffer.from(padded);
+    return Buffer.from(data);
 }
 
-function encrypt(key, iv, plainText) {
+function encrypt(key, plainText, ivLength = 13) {
     if (!key) {
         throw new Error("No data key!");
     }
 
     const plainTextBuffer = Buffer.from(plainText);
 
+    const iv = crypto.randomBytes(ivLength);
     const cipher = crypto.createCipheriv('aes-128-cbc', pad(key), pad(iv));
 
     const digest = shaArray(plainTextBuffer).slice(0, 4);
@@ -45,33 +46,52 @@ function encrypt(key, iv, plainText) {
 
     const encryptedData = Buffer.concat([cipher.update(digestWithPayload), cipher.final()]);
 
-    return encryptedData.toString('base64');
+    const encryptedDataWithIv = Buffer.concat([iv, encryptedData]);
+
+    return encryptedDataWithIv.toString('base64');
 }
 
-function decrypt(key, iv, cipherText) {
+function decrypt(key, cipherText, ivLength = 13) {
     if (!key) {
         return "[protected]";
     }
 
-    const decipher = crypto.createDecipheriv('aes-128-cbc', pad(key), pad(iv));
+    try {
+        const cipherTextBufferWithIv = Buffer.from(cipherText.toString(), 'base64');
+        const iv = cipherTextBufferWithIv.slice(0, ivLength);
 
-    const cipherTextBuffer = Buffer.from(cipherText, 'base64');
-    const decryptedBytes = Buffer.concat([decipher.update(cipherTextBuffer), decipher.final()]);
+        const cipherTextBuffer = cipherTextBufferWithIv.slice(ivLength);
 
-    const digest = decryptedBytes.slice(0, 4);
-    const payload = decryptedBytes.slice(4);
+        const decipher = crypto.createDecipheriv('aes-128-cbc', pad(key), pad(iv));
 
-    const computedDigest = shaArray(payload).slice(0, 4);
+        const decryptedBytes = Buffer.concat([decipher.update(cipherTextBuffer), decipher.final()]);
 
-    if (!arraysIdentical(digest, computedDigest)) {
-        return false;
+        const digest = decryptedBytes.slice(0, 4);
+        const payload = decryptedBytes.slice(4);
+
+        const computedDigest = shaArray(payload).slice(0, 4);
+
+        if (!arraysIdentical(digest, computedDigest)) {
+            return false;
+        }
+
+        return payload;
     }
+    catch (e) {
+        // recovery from https://github.com/zadam/trilium/issues/510
+        if (e.message && e.message.includes("WRONG_FINAL_BLOCK_LENGTH")) {
+            log.info("Caught WRONG_FINAL_BLOCK_LENGTH, returning cipherText instead");
 
-    return payload;
+            return cipherText;
+        }
+        else {
+            throw e;
+        }
+    }
 }
 
-function decryptString(dataKey, iv, cipherText) {
-    const buffer = decrypt(dataKey, iv, cipherText);
+function decryptString(dataKey, cipherText) {
+    const buffer = decrypt(dataKey, cipherText);
 
     const str = buffer.toString('utf-8');
 
@@ -84,26 +104,8 @@ function decryptString(dataKey, iv, cipherText) {
     return str;
 }
 
-function noteTitleIv(iv) {
-    if (!iv) {
-        throw new Error("Empty iv!");
-    }
-
-    return "0" + iv;
-}
-
-function noteContentIv(iv) {
-    if (!iv) {
-        throw new Error("Empty iv!");
-    }
-
-    return "1" + iv;
-}
-
 module.exports = {
     encrypt,
     decrypt,
-    decryptString,
-    noteTitleIv,
-    noteContentIv
+    decryptString
 };

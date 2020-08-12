@@ -14,6 +14,9 @@ const syncOptions = require('./sync_options');
 const syncMutexService = require('./sync_mutex');
 const cls = require('./cls');
 const request = require('./request');
+const ws = require('./ws');
+const entityChangesService = require('./entity_changes.js');
+const entityConstructor = require('../entities/entity_constructor');
 
 let proxyToggle = true;
 
@@ -25,21 +28,26 @@ const stats = {
 async function sync() {
     try {
         return await syncMutexService.doExclusively(async () => {
-            if (!await syncOptions.isSyncSetup()) {
+            if (!syncOptions.isSyncSetup()) {
                 return { success: false, message: 'Sync not configured' };
             }
 
-            const syncContext = await login();
+            let continueSync = false;
 
-            await pushSync(syncContext);
+            do {
+                const syncContext = await login();
 
-            await pullSync(syncContext);
+                await pushSync(syncContext);
 
-            await pushSync(syncContext);
+                await pullSync(syncContext);
 
-            await syncFinished(syncContext);
+                await pushSync(syncContext);
 
-            await checkContentHash(syncContext);
+                await syncFinished(syncContext);
+
+                continueSync = await checkContentHash(syncContext);
+            }
+            while (continueSync);
 
             return {
                 success: true
@@ -49,7 +57,11 @@ async function sync() {
     catch (e) {
         proxyToggle = !proxyToggle;
 
-        if (e.message && e.message.indexOf('ECONNREFUSED') !== -1) {
+        if (e.message &&
+                (e.message.includes('ECONNREFUSED') ||
+                 e.message.includes('ERR_CONNECTION_REFUSED') ||
+                 e.message.includes('Bad Gateway'))) {
+
             log.info("No connection to sync server.");
 
             return {
@@ -58,7 +70,7 @@ async function sync() {
             };
         }
         else {
-            log.info("sync failed: " + e.message);
+            log.info("sync failed: " + e.message + "\nstack: " + e.stack);
 
             return {
                 success: false,
@@ -79,13 +91,12 @@ async function login() {
 }
 
 async function doLogin() {
-    const timestamp = dateUtils.nowDate();
+    const timestamp = dateUtils.utcNowDateTime();
 
-    const documentSecret = await optionService.getOption('documentSecret');
+    const documentSecret = optionService.getOption('documentSecret');
     const hash = utils.hmac(documentSecret, timestamp);
 
     const syncContext = { cookieJar: {} };
-
     const resp = await syncRequest(syncContext, 'POST', '/api/login/sync', {
         timestamp: timestamp,
         syncVersion: appInfo.syncVersion,
@@ -93,83 +104,95 @@ async function doLogin() {
     });
 
     if (sourceIdService.isLocalSourceId(resp.sourceId)) {
-        throw new Error(`Sync server has source ID ${resp.sourceId} which is also local. Try restarting sync server.`);
+        throw new Error(`Sync server has source ID ${resp.sourceId} which is also local. Your sync setup is probably trying to connect to itself.`);
     }
 
     syncContext.sourceId = resp.sourceId;
 
-    const lastSyncedPull = await getLastSyncedPull();
+    const lastSyncedPull = getLastSyncedPull();
 
     // this is important in a scenario where we setup the sync by manually copying the document
     // lastSyncedPull then could be pretty off for the newly cloned client
-    if (lastSyncedPull > resp.maxSyncId) {
-        log.info(`Lowering last synced pull from ${lastSyncedPull} to ${resp.maxSyncId}`);
+    if (lastSyncedPull > resp.maxEntityChangeId) {
+        log.info(`Lowering last synced pull from ${lastSyncedPull} to ${resp.maxEntityChangeId}`);
 
-        await setLastSyncedPull(resp.maxSyncId);
+        setLastSyncedPull(resp.maxEntityChangeId);
     }
 
     return syncContext;
 }
 
 async function pullSync(syncContext) {
-    while (true) {
-        const lastSyncedPull = await getLastSyncedPull();
-        const changesUri = '/api/sync/changed?lastSyncId=' + lastSyncedPull;
+    let atLeastOnePullApplied = false;
 
-        const startDate = new Date();
+    while (true) {
+        const lastSyncedPull = getLastSyncedPull();
+        const changesUri = '/api/sync/changed?lastEntityChangeId=' + lastSyncedPull;
+
+        const startDate = Date.now();
 
         const resp = await syncRequest(syncContext, 'GET', changesUri);
-        stats.outstandingPulls = resp.maxSyncId - lastSyncedPull;
+
+        const pulledDate = Date.now();
+
+        stats.outstandingPulls = resp.maxEntityChangeId - lastSyncedPull;
 
         if (stats.outstandingPulls < 0) {
             stats.outstandingPulls = 0;
         }
 
-        const rows = resp.syncs;
+        const {entityChanges} = resp;
 
-        if (rows.length === 0) {
+        if (entityChanges.length === 0) {
             break;
         }
 
-        log.info("Pulled " + rows.length + " changes from " + changesUri + " in "
-            + (new Date().getTime() - startDate.getTime()) + "ms");
+        sql.transactional(() => {
+            for (const {entityChange, entity} of entityChanges) {
+                if (!sourceIdService.isLocalSourceId(entityChange.sourceId)) {
+                    if (!atLeastOnePullApplied && entityChange.entity !== 'recent_notes') { // send only for first
+                        ws.syncPullInProgress();
 
-        for (const {sync, entity} of rows) {
-            if (!sourceIdService.isLocalSourceId(sync.sourceId)) {
-                await syncUpdateService.updateEntity(sync, entity, syncContext.sourceId);
+                        atLeastOnePullApplied = true;
+                    }
+
+                    syncUpdateService.updateEntity(entityChange, entity, syncContext.sourceId);
+                }
+
+                stats.outstandingPulls = resp.maxEntityChangeId - entityChange.id;
             }
 
-            stats.outstandingPulls = resp.maxSyncId - sync.id;
+            setLastSyncedPull(entityChanges[entityChanges.length - 1].entityChange.id);
+        });
 
-        }
+        log.info(`Pulled ${entityChanges.length} changes starting at entityChangeId=${lastSyncedPull} in ${pulledDate - startDate}ms and applied them in ${Date.now() - pulledDate}ms, ${stats.outstandingPulls} outstanding pulls`);
+    }
 
-        await setLastSyncedPull(rows[rows.length - 1].sync.id);
+    if (atLeastOnePullApplied) {
+        ws.syncPullFinished();
     }
 
     log.info("Finished pull");
 }
 
 async function pushSync(syncContext) {
-    let lastSyncedPush = await getLastSyncedPush();
+    let lastSyncedPush = getLastSyncedPush();
 
     while (true) {
-        const syncs = await sql.getRows('SELECT * FROM sync WHERE id > ? LIMIT 1000', [lastSyncedPush]);
+        const entityChanges = sql.getRows('SELECT * FROM entity_changes WHERE isSynced = 1 AND id > ? LIMIT 1000', [lastSyncedPush]);
 
-        if (syncs.length === 0) {
+        if (entityChanges.length === 0) {
             log.info("Nothing to push");
 
             break;
         }
 
-        const filteredSyncs = syncs.filter(sync => {
-            if (sync.sourceId === syncContext.sourceId) {
-                // too noisy
-                //log.info(`Skipping push #${sync.id} ${sync.entityName} ${sync.entityId} because it originates from sync target`);
-
+        const filteredEntityChanges = entityChanges.filter(entityChange => {
+            if (entityChange.sourceId === syncContext.sourceId) {
                 // this may set lastSyncedPush beyond what's actually sent (because of size limit)
                 // so this is applied to the database only if there's no actual update
                 // TODO: it would be better to simplify this somehow
-                lastSyncedPush = sync.id;
+                lastSyncedPush = entityChange.id;
 
                 return false;
             }
@@ -178,27 +201,27 @@ async function pushSync(syncContext) {
             }
         });
 
-        if (filteredSyncs.length === 0) {
-            // there still might be more syncs (because of batch limit), just all from current batch
+        if (filteredEntityChanges.length === 0) {
+            // there still might be more sync changes (because of batch limit), just all from current batch
             // has been filtered out
-            await setLastSyncedPush(lastSyncedPush);
+            setLastSyncedPush(lastSyncedPush);
 
             continue;
         }
 
-        const syncRecords = await getSyncRecords(filteredSyncs);
+        const entityChangesRecords = getEntityChangesRecords(filteredEntityChanges);
         const startDate = new Date();
 
         await syncRequest(syncContext, 'PUT', '/api/sync/update', {
             sourceId: sourceIdService.getCurrentSourceId(),
-            entities: syncRecords
+            entities: entityChangesRecords
         });
 
-        log.info(`Pushing ${syncRecords.length} syncs in ` + (new Date().getTime() - startDate.getTime()) + "ms");
+        log.info(`Pushing ${entityChangesRecords.length} sync changes in ` + (Date.now() - startDate.getTime()) + "ms");
 
-        lastSyncedPush = syncRecords[syncRecords.length - 1].sync.id;
+        lastSyncedPush = entityChangesRecords[entityChangesRecords.length - 1].entityChange.id;
 
-        await setLastSyncedPush(lastSyncedPush);
+        setLastSyncedPush(lastSyncedPush);
     }
 }
 
@@ -208,49 +231,65 @@ async function syncFinished(syncContext) {
 
 async function checkContentHash(syncContext) {
     const resp = await syncRequest(syncContext, 'GET', '/api/sync/check');
+    const lastSyncedPullId = getLastSyncedPull();
 
-    if (await getLastSyncedPull() < resp.maxSyncId) {
-        log.info("There are some outstanding pulls, skipping content check.");
+    if (lastSyncedPullId < resp.maxEntityChangeId) {
+        log.info(`There are some outstanding pulls (${lastSyncedPullId} vs. ${resp.maxEntityChangeId}), skipping content check.`);
 
-        return;
+        return true;
     }
 
-    const notPushedSyncs = await sql.getValue("SELECT COUNT(*) FROM sync WHERE id > ?", [await getLastSyncedPush()]);
+    const notPushedSyncs = sql.getValue("SELECT EXISTS(SELECT 1 FROM entity_changes WHERE isSynced = 1 AND id > ?)", [getLastSyncedPush()]);
 
-    if (notPushedSyncs > 0) {
+    if (notPushedSyncs) {
         log.info(`There's ${notPushedSyncs} outstanding pushes, skipping content check.`);
 
-        return;
+        return true;
     }
 
-    await contentHashService.checkContentHashes(resp.hashes);
+    const failedChecks = contentHashService.checkContentHashes(resp.entityHashes);
+
+    for (const {entityName, sector} of failedChecks) {
+        const entityPrimaryKey = entityConstructor.getEntityFromEntityName(entityName).primaryKeyName;
+
+        entityChangesService.addEntityChangesForSector(entityName, entityPrimaryKey, sector);
+
+        await syncRequest(syncContext, 'POST', `/api/sync/queue-sector/${entityName}/${sector}`);
+    }
+
+    return failedChecks.length > 0;
 }
 
 async function syncRequest(syncContext, method, requestPath, body) {
-    return await request.exec({
+    const timeout = syncOptions.getSyncTimeout();
+
+    const opts = {
         method,
-        url: await syncOptions.getSyncServerHost() + requestPath,
+        url: syncOptions.getSyncServerHost() + requestPath,
         cookieJar: syncContext.cookieJar,
-        timeout: await syncOptions.getSyncTimeout(),
+        timeout: timeout,
         body,
-        proxy: proxyToggle ? await syncOptions.getSyncProxy() : null
-    });
+        proxy: proxyToggle ? syncOptions.getSyncProxy() : null
+    };
+
+    return await utils.timeLimit(request.exec(opts), timeout);
 }
 
 const primaryKeys = {
     "notes": "noteId",
+    "note_contents": "noteId",
     "branches": "branchId",
     "note_revisions": "noteRevisionId",
-    "recent_notes": "branchId",
+    "note_revision_contents": "noteRevisionId",
+    "recent_notes": "noteId",
     "api_tokens": "apiTokenId",
     "options": "name",
-    "attributes": "attributeId",
-    "links": "linkId"
+    "attributes": "attributeId"
 };
 
-async function getEntityRow(entityName, entityId) {
+function getEntityChangeRow(entityName, entityId) {
     if (entityName === 'note_reordering') {
-        return await sql.getMap("SELECT branchId, notePosition FROM branches WHERE parentNoteId = ? AND isDeleted = 0", [entityId]);
+        return sql.getMap("SELECT branchId, notePosition FROM branches WHERE parentNoteId = ? AND isDeleted = 0", [entityId]);
     }
     else {
         const primaryKey = primaryKeys[entityName];
@@ -259,11 +298,16 @@ async function getEntityRow(entityName, entityId) {
             throw new Error("Unknown entity " + entityName);
         }
 
-        const entity = await sql.getRow(`SELECT * FROM ${entityName} WHERE ${primaryKey} = ?`, [entityId]);
+        const entity = sql.getRow(`SELECT * FROM ${entityName} WHERE ${primaryKey} = ?`, [entityId]);
 
-        if (entityName === 'notes'
-            && entity.content !== null
-            && (entity.type === 'file' || entity.type === 'image')) {
+        if (!entity) {
+            throw new Error(`Entity ${entityName} ${entityId} not found.`);
+        }
+
+        if (['note_contents', 'note_revision_contents'].includes(entityName) && entity.content !== null) {
+            if (typeof entity.content === 'string') {
+                entity.content = Buffer.from(entity.content, 'UTF-8');
+            }
 
             entity.content = entity.content.toString("base64");
         }
@@ -272,15 +316,20 @@ async function getEntityRow(entityName, entityId) {
     }
 }
 
-async function getSyncRecords(syncs) {
+function getEntityChangesRecords(entityChanges) {
     const records = [];
     let length = 0;
 
-    for (const sync of syncs) {
-        const record = {
-            sync: sync,
-            entity: await getEntityRow(sync.entityName, sync.entityId)
-        };
+    for (const entityChange of entityChanges) {
+        const entity = getEntityChangeRow(entityChange.entityName, entityChange.entityId);
+
+        if (entityChange.entityName === 'options' && !entity.isSynced) {
+            records.push({entityChange});
+
+            continue;
+        }
+
+        const record = { entityChange, entity };
 
         records.push(record);
 
@@ -294,35 +343,39 @@ async function getSyncRecords(syncs) {
     return records;
 }
 
-async function getLastSyncedPull() {
-    return parseInt(await optionService.getOption('lastSyncedPull'));
+function getLastSyncedPull() {
+    return parseInt(optionService.getOption('lastSyncedPull'));
 }
 
-async function setLastSyncedPull(syncId) {
-    await optionService.setOption('lastSyncedPull', syncId);
+function setLastSyncedPull(entityChangeId) {
+    optionService.setOption('lastSyncedPull', entityChangeId);
 }
 
-async function getLastSyncedPush() {
-    return parseInt(await optionService.getOption('lastSyncedPush'));
+function getLastSyncedPush() {
+    return parseInt(optionService.getOption('lastSyncedPush'));
 }
 
-async function setLastSyncedPush(lastSyncedPush) {
-    await optionService.setOption('lastSyncedPush', lastSyncedPush);
+function setLastSyncedPush(lastSyncedPush) {
+    optionService.setOption('lastSyncedPush', lastSyncedPush);
 }
 
-async function updatePushStats() {
-    if (await syncOptions.isSyncSetup()) {
-        const lastSyncedPush = await optionService.getOption('lastSyncedPush');
+function updatePushStats() {
+    if (syncOptions.isSyncSetup()) {
+        const lastSyncedPush = optionService.getOption('lastSyncedPush');
 
-        stats.outstandingPushes = await sql.getValue("SELECT COUNT(*) FROM sync WHERE id > ?", [lastSyncedPush]);
+        stats.outstandingPushes = sql.getValue("SELECT COUNT(1) FROM entity_changes WHERE isSynced = 1 AND id > ?", [lastSyncedPush]);
     }
 }
 
-sqlInit.dbReady.then(async () => {
+function getMaxEntityChangeId() {
+    return sql.getValue('SELECT COALESCE(MAX(id), 0) FROM entity_changes');
+}
+
+sqlInit.dbReady.then(() => {
     setInterval(cls.wrap(sync), 60000);
 
     // kickoff initial sync immediately
-    setTimeout(cls.wrap(sync), 1000);
+    setTimeout(cls.wrap(sync), 3000);
 
     setInterval(cls.wrap(updatePushStats), 1000);
 });
@@ -330,6 +383,7 @@ sqlInit.dbReady.then(async () => {
 module.exports = {
     sync,
     login,
-    getSyncRecords,
-    stats
+    getEntityChangesRecords,
+    stats,
+    getMaxEntityChangeId
 };

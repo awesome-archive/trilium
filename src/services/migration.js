@@ -1,11 +1,11 @@
 const backupService = require('./backup');
 const sql = require('./sql');
-const sqlInit = require('./sql_init');
 const optionService = require('./options');
 const fs = require('fs-extra');
 const log = require('./log');
 const utils = require('./utils');
 const resourceDir = require('./resource_dir');
+const appInfo = require('./app_info');
 
 async function migrate() {
     const migrations = [];
@@ -13,7 +13,7 @@ async function migrate() {
     // backup before attempting migration
     await backupService.backupNow("before-migration");
 
-    const currentDbVersion = parseInt(await optionService.getOption('dbVersion'));
+    const currentDbVersion = parseInt(optionService.getOption('dbVersion'));
 
     fs.readdirSync(resourceDir.MIGRATIONS_DIR).forEach(file => {
         const match = file.match(/([0-9]{4})__([a-zA-Z0-9_ ]+)\.(sql|js)/);
@@ -43,28 +43,26 @@ async function migrate() {
         try {
             log.info("Attempting migration to version " + mig.dbVersion);
 
-            // needs to happen outside of the transaction (otherwise it's a NO-OP)
-            await sql.execute("PRAGMA foreign_keys = OFF");
-
-            await sql.transactional(async () => {
+            sql.transactional(() => {
                 if (mig.type === 'sql') {
                     const migrationSql = fs.readFileSync(resourceDir.MIGRATIONS_DIR + "/" + mig.file).toString('utf8');
 
                     console.log("Migration with SQL script: " + migrationSql);
 
-                    await sql.executeScript(migrationSql);
+                    sql.executeScript(migrationSql);
                 }
                 else if (mig.type === 'js') {
                     console.log("Migration with JS module");
 
                     const migrationModule = require(resourceDir.MIGRATIONS_DIR + "/" + mig.file);
-                    await migrationModule();
+                    migrationModule();
                 }
                 else {
                     throw new Error("Unknown migration type " + mig.type);
                 }
 
-                await optionService.setOption("dbVersion", mig.dbVersion);
+                // not using repository because of changed utcDateModified column in migration 129
+                sql.execute(`UPDATE options SET value = ? WHERE name = ?`, [mig.dbVersion, "dbVersion"]);
             });
 
             log.info("Migration to version " + mig.dbVersion + " has been successful.");
@@ -75,17 +73,39 @@ async function migrate() {
 
             utils.crash();
         }
-        finally {
-            // make sure foreign keys are enabled even if migration script disables them
-            await sql.execute("PRAGMA foreign_keys = ON");
-        }
+    }
+}
+
+function getDbVersion() {
+    return parseInt(sql.getValue("SELECT value FROM options WHERE name = 'dbVersion'"));
+}
+
+function isDbUpToDate() {
+    const dbVersion = getDbVersion();
+
+    const upToDate = dbVersion >= appInfo.dbVersion;
+
+    if (!upToDate) {
+        log.info("App db version is " + appInfo.dbVersion + ", while db version is " + dbVersion + ". Migration needed.");
     }
 
-    if (await sqlInit.isDbUpToDate()) {
-        await sqlInit.initDbConnection();
+    return upToDate;
+}
+
+async function migrateIfNecessary() {
+    const currentDbVersion = getDbVersion();
+
+    if (currentDbVersion > appInfo.dbVersion) {
+        log.error(`Current DB version ${currentDbVersion} is newer than app db version ${appInfo.dbVersion} which means that it was created by newer and incompatible version of Trilium. Upgrade to latest version of Trilium to resolve this issue.`);
+
+        utils.crash();
+    }
+
+    if (!isDbUpToDate()) {
+        await migrate();
     }
 }
 
 module.exports = {
-    migrate
+    migrateIfNecessary
 };

@@ -1,38 +1,46 @@
 const sql = require('./sql');
 const log = require('./log');
-const eventLogService = require('./event_log');
-const syncTableService = require('./sync_table');
+const entityChangesService = require('./entity_changes.js');
 const eventService = require('./events');
 
-async function updateEntity(sync, entity, sourceId) {
+function updateEntity(sync, entity, sourceId) {
+    // can be undefined for options with isSynced=false
+    if (!entity) {
+        return false;
+    }
+
     const {entityName} = sync;
+    let updated;
 
     if (entityName === 'notes') {
-        await updateNote(entity, sourceId);
+        updated = updateNote(entity, sourceId);
+    }
+    else if (entityName === 'note_contents') {
+        updated = updateNoteContent(entity, sourceId);
     }
     else if (entityName === 'branches') {
-        await updateBranch(entity, sourceId);
+        updated = updateBranch(entity, sourceId);
     }
     else if (entityName === 'note_revisions') {
-        await updateNoteRevision(entity, sourceId);
+        updated = updateNoteRevision(entity, sourceId);
+    }
+    else if (entityName === 'note_revision_contents') {
+        updated = updateNoteRevisionContent(entity, sourceId);
     }
     else if (entityName === 'note_reordering') {
-        await updateNoteReordering(sync.entityId, entity, sourceId);
+        updated = updateNoteReordering(sync.entityId, entity, sourceId);
     }
     else if (entityName === 'options') {
-        await updateOptions(entity, sourceId);
+        updated = updateOptions(entity, sourceId);
     }
     else if (entityName === 'recent_notes') {
-        await updateRecentNotes(entity, sourceId);
-    }
-    else if (entityName === 'links') {
-        await updateLink(entity, sourceId);
+        updated = updateRecentNotes(entity, sourceId);
     }
     else if (entityName === 'attributes') {
-        await updateAttribute(entity, sourceId);
+        updated = updateAttribute(entity, sourceId);
     }
     else if (entityName === 'api_tokens') {
-        await updateApiToken(entity, sourceId);
+        updated = updateApiToken(entity, sourceId);
     }
     else {
         throw new Error(`Unrecognized entity type ${entityName}`);
@@ -40,152 +48,203 @@ async function updateEntity(sync, entity, sourceId) {
 
     // currently making exception for protected notes and note revisions because here
     // the title and content are not available decrypted as listeners would expect
-    if ((entityName !== 'notes' && entityName !== 'note_revisions') || !entity.isProtected) {
-        await eventService.emit(eventService.ENTITY_SYNCED, {
+    if (updated &&
+        (!['notes', 'note_contents', 'note_revisions', 'note_revision_contents'].includes(entityName) || !entity.isProtected)) {
+        eventService.emit(eventService.ENTITY_SYNCED, {
             entityName,
             entity
         });
     }
+
+    return updated;
 }
 
-function deserializeNoteContentBuffer(note) {
-    if (note.content !== null && (note.type === 'file' || note.type === 'image')) {
-        note.content = Buffer.from(note.content, 'base64');
+function shouldWeUpdateEntity(localEntity, remoteEntity) {
+    if (!localEntity) {
+        return true;
     }
+
+    const localDate = localEntity.utcDateModified || localEntity.utcDateCreated;
+    const remoteDate = remoteEntity.utcDateModified || remoteEntity.utcDateCreated;
+
+    if (localDate < remoteDate) {
+        return true;
+    }
+
+    // this can happen in case of sync error when hashes are different but dates are the same - we should still update
+    if (localEntity.hash !== remoteEntity.hash && localDate === remoteDate) {
+        return true;
+    }
+
+    return false;
 }
 
-async function updateNote(entity, sourceId) {
-    deserializeNoteContentBuffer(entity);
+function updateNote(remoteEntity, sourceId) {
+    const localEntity = sql.getRow("SELECT * FROM notes WHERE noteId = ?", [remoteEntity.noteId]);
 
-    const origNote = await sql.getRow("SELECT * FROM notes WHERE noteId = ?", [entity.noteId]);
+    if (shouldWeUpdateEntity(localEntity, remoteEntity)) {
+        sql.transactional(() => {
+            sql.replace("notes", remoteEntity);
 
-    if (!origNote || origNote.dateModified <= entity.dateModified) {
-        await sql.transactional(async () => {
-            await sql.replace("notes", entity);
-
-            await syncTableService.addNoteSync(entity.noteId, sourceId);
+            entityChangesService.addNoteEntityChange(remoteEntity.noteId, sourceId);
         });
 
-        log.info("Update/sync note " + entity.noteId);
+        return true;
     }
+
+    return false;
 }
 
-async function updateBranch(entity, sourceId) {
-    const orig = await sql.getRowOrNull("SELECT * FROM branches WHERE branchId = ?", [entity.branchId]);
+function updateNoteContent(remoteEntity, sourceId) {
+    const localEntity = sql.getRow("SELECT * FROM note_contents WHERE noteId = ?", [remoteEntity.noteId]);
 
-    await sql.transactional(async () => {
-        if (orig === null || orig.dateModified < entity.dateModified) {
+    if (shouldWeUpdateEntity(localEntity, remoteEntity)) {
+        remoteEntity.content = remoteEntity.content === null ? null : Buffer.from(remoteEntity.content, 'base64');
+
+        sql.transactional(() => {
+            sql.replace("note_contents", remoteEntity);
+
+            entityChangesService.addNoteContentEntityChange(remoteEntity.noteId, sourceId);
+        });
+
+        return true;
+    }
+
+    return false;
+}
+
+function updateBranch(remoteEntity, sourceId) {
+    const localEntity = sql.getRowOrNull("SELECT * FROM branches WHERE branchId = ?", [remoteEntity.branchId]);
+
+    if (shouldWeUpdateEntity(localEntity, remoteEntity)) {
+        sql.transactional(() => {
             // isExpanded is not synced unless it's a new branch instance
             // otherwise in case of full new sync we'll get all branches (even root) collapsed.
-            if (orig) {
-                delete entity.isExpanded;
+            if (localEntity) {
+                delete remoteEntity.isExpanded;
             }
 
-            await sql.replace('branches', entity);
+            sql.replace('branches', remoteEntity);
 
-            await syncTableService.addBranchSync(entity.branchId, sourceId);
-
-            log.info("Update/sync branch " + entity.branchId);
-        }
-    });
-}
-
-async function updateNoteRevision(entity, sourceId) {
-    const orig = await sql.getRowOrNull("SELECT * FROM note_revisions WHERE noteRevisionId = ?", [entity.noteRevisionId]);
-
-    await sql.transactional(async () => {
-        // we update note revision even if date modified to is the same because the only thing which might have changed
-        // is the protected status (and correnspondingly title and content) which doesn't affect the dateModifiedTo
-        if (orig === null || orig.dateModifiedTo <= entity.dateModifiedTo) {
-            await sql.replace('note_revisions', entity);
-
-            await syncTableService.addNoteRevisionSync(entity.noteRevisionId, sourceId);
-
-            log.info("Update/sync note revision " + entity.noteRevisionId);
-        }
-    });
-}
-
-async function updateNoteReordering(entityId, entity, sourceId) {
-    await sql.transactional(async () => {
-        Object.keys(entity).forEach(async key => {
-            await sql.execute("UPDATE branches SET notePosition = ? WHERE branchId = ?", [entity[key], key]);
+            entityChangesService.addBranchEntityChange(remoteEntity.branchId, sourceId);
         });
 
-        await syncTableService.addNoteReorderingSync(entityId, sourceId);
+        return true;
+    }
+
+    return false;
+}
+
+function updateNoteRevision(remoteEntity, sourceId) {
+    const localEntity = sql.getRowOrNull("SELECT * FROM note_revisions WHERE noteRevisionId = ?", [remoteEntity.noteRevisionId]);
+
+    sql.transactional(() => {
+        if (shouldWeUpdateEntity(localEntity, remoteEntity)) {
+            sql.replace('note_revisions', remoteEntity);
+
+            entityChangesService.addNoteRevisionEntityChange(remoteEntity.noteRevisionId, sourceId);
+
+            log.info("Update/sync note revision " + remoteEntity.noteRevisionId);
+        }
     });
 }
 
-async function updateOptions(entity, sourceId) {
-    const orig = await sql.getRowOrNull("SELECT * FROM options WHERE name = ?", [entity.name]);
+function updateNoteRevisionContent(remoteEntity, sourceId) {
+    const localEntity = sql.getRowOrNull("SELECT * FROM note_revision_contents WHERE noteRevisionId = ?", [remoteEntity.noteRevisionId]);
 
-    if (orig && !orig.isSynced) {
+    if (shouldWeUpdateEntity(localEntity, remoteEntity)) {
+        sql.transactional(() => {
+            remoteEntity.content = remoteEntity.content === null ? null : Buffer.from(remoteEntity.content, 'base64');
+
+            sql.replace('note_revision_contents', remoteEntity);
+
+            entityChangesService.addNoteRevisionContentEntityChange(remoteEntity.noteRevisionId, sourceId);
+        });
+
+        return true;
+    }
+
+    return false;
+}
+
+function updateNoteReordering(entityId, remote, sourceId) {
+    sql.transactional(() => {
+        for (const key in remote) {
+            sql.execute("UPDATE branches SET notePosition = ? WHERE branchId = ?", [remote[key], key]);
+        }
+
+        entityChangesService.addNoteReorderingEntityChange(entityId, sourceId);
+    });
+
+    return true;
+}
+
+function updateOptions(remoteEntity, sourceId) {
+    const localEntity = sql.getRowOrNull("SELECT * FROM options WHERE name = ?", [remoteEntity.name]);
+
+    if (localEntity && !localEntity.isSynced) {
         return;
     }
 
-    await sql.transactional(async () => {
-        if (orig === null || orig.dateModified < entity.dateModified) {
-            await sql.replace('options', entity);
+    if (shouldWeUpdateEntity(localEntity, remoteEntity)) {
+        sql.transactional(() => {
+            sql.replace('options', remoteEntity);
 
-            await syncTableService.addOptionsSync(entity.name, sourceId);
-
-            await eventLogService.addEvent("Synced option " + entity.name);
-        }
-    });
-}
-
-async function updateRecentNotes(entity, sourceId) {
-    const orig = await sql.getRowOrNull("SELECT * FROM recent_notes WHERE branchId = ?", [entity.branchId]);
-
-    if (orig === null || orig.dateCreated < entity.dateCreated) {
-        await sql.transactional(async () => {
-            await sql.replace('recent_notes', entity);
-
-            await syncTableService.addRecentNoteSync(entity.branchId, sourceId);
-        });
-    }
-}
-
-async function updateLink(entity, sourceId) {
-    const origLink = await sql.getRow("SELECT * FROM links WHERE linkId = ?", [entity.linkId]);
-
-    if (!origLink || origLink.dateModified <= entity.dateModified) {
-        await sql.transactional(async () => {
-            await sql.replace("links", entity);
-
-            await syncTableService.addLinkSync(entity.linkId, sourceId);
+            entityChangesService.addOptionEntityChange(remoteEntity.name, sourceId, true);
         });
 
-        log.info("Update/sync link " + entity.linkId);
+        return true;
     }
+
+    return false;
 }
 
-async function updateAttribute(entity, sourceId) {
-    const origAttribute = await sql.getRow("SELECT * FROM attributes WHERE attributeId = ?", [entity.attributeId]);
+function updateRecentNotes(remoteEntity, sourceId) {
+    const localEntity = sql.getRowOrNull("SELECT * FROM recent_notes WHERE noteId = ?", [remoteEntity.noteId]);
 
-    if (!origAttribute || origAttribute.dateModified <= entity.dateModified) {
-        await sql.transactional(async () => {
-            await sql.replace("attributes", entity);
+    if (shouldWeUpdateEntity(localEntity, remoteEntity)) {
+        sql.transactional(() => {
+            sql.replace('recent_notes', remoteEntity);
 
-            await syncTableService.addAttributeSync(entity.attributeId, sourceId);
+            entityChangesService.addRecentNoteEntityChange(remoteEntity.noteId, sourceId);
         });
 
-        log.info("Update/sync attribute " + entity.attributeId);
+        return true;
     }
+
+    return false;
 }
 
-async function updateApiToken(entity, sourceId) {
-    const apiTokenId = await sql.getRow("SELECT * FROM api_tokens WHERE apiTokenId = ?", [entity.apiTokenId]);
+function updateAttribute(remoteEntity, sourceId) {
+    const localEntity = sql.getRow("SELECT * FROM attributes WHERE attributeId = ?", [remoteEntity.attributeId]);
+
+    if (shouldWeUpdateEntity(localEntity, remoteEntity)) {
+        sql.transactional(() => {
+            sql.replace("attributes", remoteEntity);
+
+            entityChangesService.addAttributeEntityChange(remoteEntity.attributeId, sourceId);
+        });
+
+        return true;
+    }
+
+    return false;
+}
+
+function updateApiToken(entity, sourceId) {
+    const apiTokenId = sql.getRow("SELECT * FROM api_tokens WHERE apiTokenId = ?", [entity.apiTokenId]);
 
     if (!apiTokenId) {
-        await sql.transactional(async () => {
-            await sql.replace("api_tokens", entity);
+        sql.transactional(() => {
+            sql.replace("api_tokens", entity);
 
-            await syncTableService.addApiTokenSync(entity.apiTokenId, sourceId);
+            entityChangesService.addApiTokenEntityChange(entity.apiTokenId, sourceId);
         });
 
-        log.info("Update/sync API token " + entity.apiTokenId);
+        return true;
     }
+
+    return false;
 }
 
 module.exports = {

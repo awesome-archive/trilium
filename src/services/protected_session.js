@@ -15,11 +15,11 @@ function setDataKey(decryptedDataKey) {
 }
 
 function setProtectedSessionId(req) {
-    cls.namespace.set('protectedSessionId', req.headers['trilium-protected-session-id']);
+    cls.set('protectedSessionId', req.cookies.protectedSessionId);
 }
 
 function getProtectedSessionId() {
-    return cls.namespace.get('protectedSessionId');
+    return cls.get('protectedSessionId');
 }
 
 function getDataKey() {
@@ -34,94 +34,33 @@ function isProtectedSessionAvailable() {
     return !!dataKeyMap[protectedSessionId];
 }
 
-function decryptNoteTitle(noteId, encryptedTitle) {
-    const dataKey = getDataKey();
-
-    try {
-        const iv = dataEncryptionService.noteTitleIv(noteId);
-
-        return dataEncryptionService.decryptString(dataKey, iv, encryptedTitle);
-    }
-    catch (e) {
-        e.message = `Cannot decrypt note title for noteId=${noteId}: ` + e.message;
-        throw e;
-    }
-}
-
-function decryptNote(note) {
-    const dataKey = getDataKey();
-
-    if (!note.isProtected) {
-        return;
-    }
-
-    try {
-        if (note.title) {
-            note.title = dataEncryptionService.decryptString(dataKey, dataEncryptionService.noteTitleIv(note.noteId), note.title);
-        }
-
-        if (note.content) {
-            const contentIv = dataEncryptionService.noteContentIv(note.noteId);
-
-            if (note.type === 'file') {
-                note.content = dataEncryptionService.decrypt(dataKey, contentIv, note.content);
-            }
-            else {
-                note.content = dataEncryptionService.decryptString(dataKey, contentIv, note.content);
-            }
-        }
-    }
-    catch (e) {
-        e.message = `Cannot decrypt note for noteId=${note.noteId}: ` + e.message;
-        throw e;
-    }
-}
-
 function decryptNotes(notes) {
     for (const note of notes) {
-        decryptNote(note);
+        if (note.isProtected) {
+            note.title = decryptString(note.title);
+        }
     }
 }
 
-function decryptNoteRevision(hist) {
-    const dataKey = getDataKey();
-
-    if (!hist.isProtected) {
-        return;
-    }
-
-    if (hist.title) {
-        hist.title = dataEncryptionService.decryptString(dataKey, dataEncryptionService.noteTitleIv(hist.noteRevisionId), hist.title);
-    }
-
-    if (hist.content) {
-        hist.content = dataEncryptionService.decryptString(dataKey, dataEncryptionService.noteContentIv(hist.noteRevisionId), hist.content);
-    }
+function encrypt(plainText) {
+    return dataEncryptionService.encrypt(getDataKey(), plainText);
 }
 
-function encryptNote(note) {
-    const dataKey = getDataKey();
-
-    note.title = dataEncryptionService.encrypt(dataKey, dataEncryptionService.noteTitleIv(note.noteId), note.title);
-    note.content = dataEncryptionService.encrypt(dataKey, dataEncryptionService.noteContentIv(note.noteId), note.content);
+function decrypt(cipherText) {
+    return dataEncryptionService.decrypt(getDataKey(), cipherText);
 }
 
-function encryptNoteRevision(revision) {
-    const dataKey = getDataKey();
-
-    revision.title = dataEncryptionService.encrypt(dataKey, dataEncryptionService.noteTitleIv(revision.noteRevisionId), revision.title);
-    revision.content = dataEncryptionService.encrypt(dataKey, dataEncryptionService.noteContentIv(revision.noteRevisionId), revision.content);
+function decryptString(cipherText) {
+    return dataEncryptionService.decryptString(getDataKey(), cipherText);
 }
 
 module.exports = {
     setDataKey,
     getDataKey,
     isProtectedSessionAvailable,
-    decryptNoteTitle,
-    decryptNote,
+    encrypt,
+    decrypt,
+    decryptString,
     decryptNotes,
-    decryptNoteRevision,
-    encryptNote,
-    encryptNoteRevision,
     setProtectedSessionId
 };

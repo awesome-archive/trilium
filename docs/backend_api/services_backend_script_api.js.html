@@ -30,15 +30,17 @@
 const noteService = require('./notes');
 const sql = require('./sql');
 const utils = require('./utils');
-const dateUtils = require('./date_utils');
 const attributeService = require('./attributes');
 const dateNoteService = require('./date_notes');
 const treeService = require('./tree');
 const config = require('./config');
 const repository = require('./repository');
 const axios = require('axios');
+const dayjs = require('dayjs');
 const cloningService = require('./cloning');
-const messagingService = require('./messaging');
+const ws = require('./ws.js');
+const appInfo = require('./app_info');
+const searchService = require('./search');
 
 /**
  * This is the main backend API interface for scripts. It's published in the local "api" object.
@@ -46,20 +48,23 @@ const messagingService = require('./messaging');
  * @constructor
  * @hideconstructor
  */
-function BackendScriptApi(startNote, currentNote, originEntity) {
+function BackendScriptApi(currentNote, apiParams) {
     /** @property {Note} note where script started executing */
-    this.startNote = startNote;
-    /** @property {Note} note where script is currently executing */
+    this.startNote = apiParams.startNote;
+    /** @property {Note} note where script is currently executing. Don't mix this up with concept of active note */
     this.currentNote = currentNote;
     /** @property {Entity} entity whose event triggered this executions */
-    this.originEntity = originEntity;
+    this.originEntity = apiParams.originEntity;
+
+    for (const key in apiParams) {
+        this[key] = apiParams[key];
+    }
 
     this.axios = axios;
+    this.dayjs = dayjs;
 
     this.utils = {
-        unescapeHtml: utils.unescapeHtml,
-        isoDateTimeStr: dateUtils.dateStr,
-        isoDateStr: date => dateUtils.dateStr(date).substr(0, 10)
+        unescapeHtml: utils.unescapeHtml
     };
 
     /**
@@ -115,6 +120,30 @@ function BackendScriptApi(startNote, currentNote, originEntity) {
      * @returns {Promise&lt;Entity[]>}
      */
     this.getEntities = repository.getEntities;
+
+    /**
+     * This is a powerful search method - you can search by attributes and their values, e.g.:
+     * "@dateModified =* MONTH AND @log". See full documentation for all options at: https://github.com/zadam/trilium/wiki/Search
+     *
+     * @method
+     * @param {string} searchString
+     * @returns {Promise&lt;Note[]>}
+     */
+    this.searchForNotes = searchService.searchForNotes;
+
+    /**
+     * This is a powerful search method - you can search by attributes and their values, e.g.:
+     * "@dateModified =* MONTH AND @log". See full documentation for all options at: https://github.com/zadam/trilium/wiki/Search
+     *
+     * @method
+     * @param {string} searchString
+     * @returns {Promise&lt;Note|null>}
+     */
+    this.searchForNote = async searchString => {
+        const notes = await searchService.searchForNotes(searchString);
+
+        return notes.length > 0 ? notes[0] : null;
+    };
 
     /**
      * Retrieves notes with given label name &amp; value
@@ -177,6 +206,66 @@ function BackendScriptApi(startNote, currentNote, originEntity) {
      */
 
     /**
+     * Create text note. See also createNewNote() for more options.
+     *
+     * @param {string} parentNoteId
+     * @param {string} title
+     * @param {string} content
+     * @return {Promise&lt;{note: Note, branch: Branch}>}
+     */
+    this.createTextNote = async (parentNoteId, title, content = '') => await noteService.createNewNote({
+        parentNoteId,
+        title,
+        content,
+        type: 'text'
+    });
+
+    /**
+     * Create data note - data in this context means object serializable to JSON. Created note will be of type 'code' and
+     * JSON MIME type. See also createNewNote() for more options.
+     *
+     * @param {string} parentNoteId
+     * @param {string} title
+     * @param {object} content
+     * @return {Promise&lt;{note: Note, branch: Branch}>}
+     */
+    this.createDataNote = async (parentNoteId, title, content = {}) => await noteService.createNewNote({
+        parentNoteId,
+        title,
+        content: JSON.stringify(content, null, '\t'),
+        type: 'code',
+        mime: 'application/json'
+    });
+
+    /**
+     * @typedef {object} CreateNewNoteParams
+     * @property {string} parentNoteId - MANDATORY
+     * @property {string} title - MANDATORY
+     * @property {string|buffer} content - MANDATORY
+     * @property {string} type - text, code, file, image, search, book, relation-map - MANDATORY
+     * @property {string} mime - value is derived from default mimes for type
+     * @property {boolean} isProtected - default is false
+     * @property {boolean} isExpanded - default is false
+     * @property {string} prefix - default is empty string
+     * @property {int} notePosition - default is last existing notePosition in a parent + 10
+     */
+
+    /**
+     * @method
+     *
+     * @param {CreateNewNoteParams} [params]
+     * @returns {Promise&lt;{note: Note, branch: Branch}>} object contains newly created entities note and branch
+     */
+    this.createNewNote = noteService.createNewNote;
+
+    /**
+     * @typedef {object} CreateNoteAttribute
+     * @property {string} type - attribute type - label, relation etc.
+     * @property {string} name - attribute name
+     * @property {string} [value] - attribute value
+     */
+
+    /**
      * @typedef {object} CreateNoteExtraOptions
      * @property {boolean} [json=false] - should the note be JSON
      * @property {boolean} [isProtected=false] - should the note be protected
@@ -187,6 +276,7 @@ function BackendScriptApi(startNote, currentNote, originEntity) {
 
     /**
      * @method
+     * @deprecated please use createNote() API method instead
      *
      * @param {string} parentNoteId - create new note under this parent
      * @param {string} title
@@ -194,7 +284,39 @@ function BackendScriptApi(startNote, currentNote, originEntity) {
      * @param {CreateNoteExtraOptions} [extraOptions={}]
      * @returns {Promise&lt;{note: Note, branch: Branch}>} object contains newly created entities note and branch
      */
-    this.createNote = noteService.createNote;
+    this.createNote = async (parentNoteId, title, content = "", extraOptions= {}) => {
+        extraOptions.parentNoteId = parentNoteId;
+        extraOptions.title = title;
+
+        const parentNote = await repository.getNote(parentNoteId);
+
+        // code note type can be inherited, otherwise text is default
+        extraOptions.type = parentNote.type === 'code' ? 'code' : 'text';
+        extraOptions.mime = parentNote.type === 'code' ? parentNote.mime : 'text/html';
+
+        if (extraOptions.json) {
+            extraOptions.content = JSON.stringify(content || {}, null, '\t');
+            extraOptions.type = 'code';
+            extraOptions.mime = 'application/json';
+        }
+        else {
+            extraOptions.content = content;
+        }
+
+        const {note, branch} = await noteService.createNewNote(extraOptions);
+
+        for (const attr of extraOptions.attributes || []) {
+            await attributeService.createAttribute({
+                noteId: note.noteId,
+                type: attr.type,
+                name: attr.name,
+                value: attr.value,
+                isInheritable: !!attr.isInheritable
+            });
+        }
+
+        return {note, branch};
+    };
 
     /**
      * Log given message to trilium logs.
@@ -212,13 +334,49 @@ function BackendScriptApi(startNote, currentNote, originEntity) {
     this.getRootCalendarNote = dateNoteService.getRootCalendarNote;
 
     /**
-     * Returns day note for given date (YYYY-MM-DD format). If such note doesn't exist, it is created.
+     * Returns day note for given date. If such note doesn't exist, it is created.
      *
      * @method
-     * @param {string} date
+     * @param {string} date in YYYY-MM-DD format
      * @returns {Promise&lt;Note|null>}
      */
     this.getDateNote = dateNoteService.getDateNote;
+
+    /**
+     * Returns today's day note. If such note doesn't exist, it is created.
+     *
+     * @method
+     * @returns {Promise&lt;Note|null>}
+     */
+    this.getTodayNote = dateNoteService.getTodayNote;
+
+    /**
+     * Returns note for the first date of the week of the given date.
+     *
+     * @method
+     * @param {string} date in YYYY-MM-DD format
+     * @param {object} options - "startOfTheWeek" - either "monday" (default) or "sunday"
+     * @returns {Promise&lt;Note|null>}
+     */
+    this.getWeekNote = dateNoteService.getWeekNote;
+
+    /**
+     * Returns month note for given date. If such note doesn't exist, it is created.
+     *
+     * @method
+     * @param {string} date in YYYY-MM format
+     * @returns {Promise&lt;Note|null>}
+     */
+    this.getMonthNote = dateNoteService.getMonthNote;
+
+    /**
+     * Returns year note for given year. If such note doesn't exist, it is created.
+     *
+     * @method
+     * @param {string} year in YYYY format
+     * @returns {Promise&lt;Note|null>}
+     */
+    this.getYearNote = dateNoteService.getYearNote;
 
     /**
      * @method
@@ -234,9 +392,10 @@ function BackendScriptApi(startNote, currentNote, originEntity) {
      * This method looks similar to toggleNoteInParent() but differs because we're looking up branch by prefix.
      *
      * @method
+     * @deprecated - this method is pretty confusing and serves specialized purpose only
      * @param {string} noteId
      * @param {string} prefix
-     * @param {string} [parentNoteId]
+     * @param {string|null} parentNoteId
      */
     this.setNoteToParent = treeService.setNoteToParent;
 
@@ -256,15 +415,19 @@ function BackendScriptApi(startNote, currentNote, originEntity) {
     this.sql = sql;
 
     /**
-     * Trigger tree refresh in all connected clients. This is required when some tree change happens in
-     * the backend.
-     *
-     * @returns {Promise&lt;void>}
+     * @method
+     * @deprecated - this is now no-op since all the changes should be gracefully handled per widget
      */
-    this.refreshTree = () => messagingService.sendMessageToAllClients({ type: 'refresh-tree' });
+    this.refreshTree = () => {};
+
+    /**
+     * @return {{syncVersion, appVersion, buildRevision, dbVersion, dataDirectory, buildDate}|*} - object representing basic info about running Trilium version
+     */
+    this.getAppInfo = () => appInfo
 }
 
-module.exports = BackendScriptApi;</code></pre>
+module.exports = BackendScriptApi;
+</code></pre>
         </article>
     </section>
 
@@ -274,13 +437,13 @@ module.exports = BackendScriptApi;</code></pre>
 </div>
 
 <nav>
-    <h2><a href="index.html">Home</a></h2><h3>Classes</h3><ul><li><a href="ApiToken.html">ApiToken</a></li><li><a href="Attribute.html">Attribute</a></li><li><a href="BackendScriptApi.html">BackendScriptApi</a></li><li><a href="Branch.html">Branch</a></li><li><a href="Entity.html">Entity</a></li><li><a href="Link.html">Link</a></li><li><a href="Note.html">Note</a></li><li><a href="NoteRevision.html">NoteRevision</a></li><li><a href="Option.html">Option</a></li><li><a href="RecentNote.html">RecentNote</a></li></ul><h3><a href="global.html">Global</a></h3>
+    <h2><a href="index.html">Home</a></h2><h3>Classes</h3><ul><li><a href="ApiToken.html">ApiToken</a></li><li><a href="Attribute.html">Attribute</a></li><li><a href="BackendScriptApi.html">BackendScriptApi</a></li><li><a href="Branch.html">Branch</a></li><li><a href="Entity.html">Entity</a></li><li><a href="Note.html">Note</a></li><li><a href="NoteRevision.html">NoteRevision</a></li><li><a href="Option.html">Option</a></li><li><a href="RecentNote.html">RecentNote</a></li></ul><h3><a href="global.html">Global</a></h3>
 </nav>
 
 <br class="clear">
 
 <footer>
-    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.5.5</a>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 3.6.4</a>
 </footer>
 
 <script> prettyPrint(); </script>
